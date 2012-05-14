@@ -42,6 +42,7 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/fsuid.h>
 
 /**
  * FSAL_truncate:
@@ -74,7 +75,7 @@ fsal_status_t GPFSFSAL_truncate(fsal_handle_t * p_filehandle,       /* IN */
     )
 {
 
-  int errsv, rc = 0;
+  int errsv, rc = 0, fsuid, fsgid;
   int fd = -1;
   gpfsfsal_file_t *file_desc = (gpfsfsal_file_t *)file_descriptor;
   fsal_status_t st;
@@ -85,6 +86,8 @@ fsal_status_t GPFSFSAL_truncate(fsal_handle_t * p_filehandle,       /* IN */
   if(!p_filehandle || !p_context)
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_truncate);
 
+  fsuid = setfsuid(p_context->credential.user);
+  fsgid = setfsgid(p_context->credential.group);
   if (file_desc && file_desc->fd != 0)
     {
       fd = file_desc->fd;
@@ -101,8 +104,11 @@ fsal_status_t GPFSFSAL_truncate(fsal_handle_t * p_filehandle,       /* IN */
       st = fsal_internal_handle2fd(p_context, p_filehandle, &fd, O_RDWR);
       ReleaseTokenFSCall();
 
-      if (FSAL_IS_ERROR(st))
+      if (FSAL_IS_ERROR(st)) {
+        setfsuid(fsuid);
+        setfsgid(fsgid);
         ReturnStatus(st, INDEX_FSAL_truncate);
+      }
 
       /* Executes the POSIX truncate operation */
 
@@ -114,6 +120,8 @@ fsal_status_t GPFSFSAL_truncate(fsal_handle_t * p_filehandle,       /* IN */
       close(fd);
     }
 
+  setfsuid(fsuid);
+  setfsgid(fsgid);
   /* convert return code */
   if(rc)
     {
