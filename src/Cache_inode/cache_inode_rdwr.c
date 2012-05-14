@@ -220,6 +220,7 @@ cache_inode_rdwr(cache_entry_t *entry,
           } else {
                fsal_status
                     = FSAL_write(&(entry->object.file.open_fd.fd),
+                                 context,
                                  &seek_descriptor,
                                  io_size,
                                  buffer,
