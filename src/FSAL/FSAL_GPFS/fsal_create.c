@@ -229,12 +229,12 @@ fsal_status_t GPFSFSAL_mkdir(fsal_handle_t * p_parent_directory_handle,     /* I
 {
 
   int rc, errsv;
-  int setgid_bit = 0;
   mode_t unix_mode;
   fsal_status_t status;
-  int fd, newfd;
+  int fd;
   fsal_accessflags_t access_mask = 0;
   fsal_attrib_list_t parent_dir_attrs;
+  int fsuid, fsgid;
 
   /* sanity checks.
    * note : object_attributes is optional.
@@ -264,10 +264,7 @@ fsal_status_t GPFSFSAL_mkdir(fsal_handle_t * p_parent_directory_handle,     /* I
       ReturnStatus(status, INDEX_FSAL_mkdir);
     }
 
-  /* Check the user can write in the directory, and check the setgid bit on the directory */
-
-  if(fsal2unix_mode(parent_dir_attrs.mode) & S_ISGID)
-    setgid_bit = 1;
+  /* Check the user can write in the directory */
 
   /* Set both mode and ace4 mask */
   access_mask = FSAL_MODE_MASK_SET(FSAL_W_OK | FSAL_X_OK) |
@@ -289,8 +286,14 @@ fsal_status_t GPFSFSAL_mkdir(fsal_handle_t * p_parent_directory_handle,     /* I
   /* creates the directory and get its handle */
 
   TakeTokenFSCall();
+  fsuid = setfsuid(p_context->credential.user);
+  fsgid = setfsgid(p_context->credential.group);
+
   rc = mkdirat(fd, p_dirname->name, unix_mode);
   errsv = errno;
+
+  setfsuid(fsuid);
+  setfsgid(fsgid);
   if(rc)
     {
       close(fd);
@@ -301,54 +304,15 @@ fsal_status_t GPFSFSAL_mkdir(fsal_handle_t * p_parent_directory_handle,     /* I
 
   ReleaseTokenFSCall();
 
-  /****
-   *  There is a race here between mkdir creation and the open, not
-   *  sure there is any way to close it in practice.
-   */
-
   /* get the new handle */
   TakeTokenFSCall();
   status = fsal_internal_get_handle_at(fd, p_dirname, p_object_handle);
   ReleaseTokenFSCall();
 
-  if(FSAL_IS_ERROR(status))
-    {
-      close(fd);
-      ReturnStatus(status, INDEX_FSAL_mkdir);
-    }
-
-  TakeTokenFSCall();
-  status =
-      fsal_internal_handle2fd_at(fd, p_object_handle, &newfd, O_RDONLY | O_DIRECTORY);
-  ReleaseTokenFSCall();
-
-  if(FSAL_IS_ERROR(status))
-    {
-      close(fd);
-      ReturnStatus(status, INDEX_FSAL_mkdir);
-    }
-
   /* the directory has been created */
-  /* chown the dir to the current user/group */
-
-  if(p_context->credential.user != geteuid())
-    {
-      TakeTokenFSCall();
-      /* if the setgid_bit was set on the parent directory, do not change the group of the created file, because it's already the parentdir's group */
-      rc = fchown(newfd, p_context->credential.user,
-                  setgid_bit ? -1 : (int)p_context->credential.group);
-      errsv = errno;
-      ReleaseTokenFSCall();
-      if(rc)
-        {
-          close(fd);
-          close(newfd);
-          Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_mkdir);
-        }
-    }
-
   close(fd);
-  close(newfd);
+  if(FSAL_IS_ERROR(status))
+      ReturnStatus(status, INDEX_FSAL_mkdir);
 
   /* retrieve file attributes */
   if(p_object_attributes)
