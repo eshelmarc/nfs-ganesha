@@ -40,6 +40,7 @@
 #include "fsal_convert.h"
 #include <string.h>
 #include <unistd.h>
+#include <sys/fsuid.h>
 
 /**
  * FSAL_readlink:
@@ -163,7 +164,7 @@ fsal_status_t GPFSFSAL_symlink(fsal_handle_t * p_parent_directory_handle,   /* I
   int rc, errsv;
   fsal_status_t status;
   int fd;
-  int setgid_bit = FALSE;
+  int fsuid, fsgid;
   fsal_accessflags_t access_mask = 0;
   fsal_attrib_list_t parent_dir_attrs;
 
@@ -197,9 +198,6 @@ fsal_status_t GPFSFSAL_symlink(fsal_handle_t * p_parent_directory_handle,   /* I
       ReturnStatus(status, INDEX_FSAL_symlink);
     }
 
-  if(fsal2unix_mode(parent_dir_attrs.mode) & S_ISGID)
-    setgid_bit = TRUE;
-
   /* Set both mode and ace4 mask */
   access_mask = FSAL_MODE_MASK_SET(FSAL_W_OK | FSAL_X_OK) |
                 FSAL_ACE4_MASK_SET(FSAL_ACE_PERM_ADD_FILE);
@@ -220,8 +218,14 @@ fsal_status_t GPFSFSAL_symlink(fsal_handle_t * p_parent_directory_handle,   /* I
   /* create the symlink on the filesystem. */
 
   TakeTokenFSCall();
+  fsuid = setfsuid(p_context->credential.user);
+  fsgid = setfsgid(p_context->credential.group);
+
   rc = symlinkat(p_linkcontent->path, fd, p_linkname->name);
   errsv = errno;
+
+  setfsuid(fsuid);
+  setfsgid(fsgid);
   ReleaseTokenFSCall();
 
   if(rc)
@@ -234,23 +238,10 @@ fsal_status_t GPFSFSAL_symlink(fsal_handle_t * p_parent_directory_handle,   /* I
      also a race lower down  */
   status = fsal_internal_get_handle_at(fd, p_linkname, p_link_handle);
 
-  if(FSAL_IS_ERROR(status))
-    {
-      close(fd);
-      ReturnStatus(status, INDEX_FSAL_symlink);
-    }
-
-  /* chown the symlink to the current user/group */
-  TakeTokenFSCall();
-  rc = fchownat(fd, p_linkname->name, p_context->credential.user,
-                setgid_bit ? -1 : p_context->credential.group, AT_SYMLINK_NOFOLLOW);
-  errsv = errno;
-  ReleaseTokenFSCall();
-
   close(fd);
 
-  if(rc)
-    Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_symlink);
+  if(FSAL_IS_ERROR(status))
+      ReturnStatus(status, INDEX_FSAL_symlink);
 
   /* get attributes if asked */
 
