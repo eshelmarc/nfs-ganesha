@@ -374,6 +374,7 @@ typedef struct nfs_param__
   buddy_parameter_t buddy_param_admin;
   buddy_parameter_t buddy_param_tcp_mgr;
   buddy_parameter_t buddy_param_fsal_up;
+  buddy_parameter_t buddy_param_fsal_up_process;
 #endif
 
 } nfs_parameter_t;
@@ -857,8 +858,11 @@ extern const nfs_function_desc_t *INVALID_FUNCDESC;
 const nfs_function_desc_t *nfs_rpc_get_funcdesc(nfs_request_data_t * preqnfs);
 int nfs_rpc_get_args(nfs_request_data_t * preqnfs, const nfs_function_desc_t *pfuncdesc);
 
+#ifdef _USE_FSAL_UP
+void *fsal_up_process_thread( void * UnUsedArg );
 void create_fsal_up_threads();
 void nfs_Init_FSAL_UP();
+#endif /* _USE_FSAL_UP */
 
 void stats_collect (ganesha_stats_t                 *ganesha_stats);
 
