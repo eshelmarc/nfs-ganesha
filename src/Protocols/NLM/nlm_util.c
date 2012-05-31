@@ -357,7 +357,7 @@ int nlm_process_parameters(struct svc_req        * preq,
        * just return GRANTED (the unlock must succeed, there can't be
        * any locks).
        */
-      if(care)
+      if(care != CARE_NOT)
         return NLM4_DENIED_NOLOCKS;
       else
         return NLM4_GRANTED;
