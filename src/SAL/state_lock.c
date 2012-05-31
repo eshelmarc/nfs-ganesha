@@ -2717,6 +2717,8 @@ state_status_t state_cancel(cache_entry_t        * pentry,
  *
  * state_nlm_notify: Handle an SM_NOTIFY from NLM
  *
+ * Also used to handle NLM_FREE_ALL
+ *
  */
 state_status_t state_nlm_notify(state_nsm_client_t   * pnsmclient,
                                 state_t              * pstate,
@@ -2732,6 +2734,7 @@ state_status_t state_nlm_notify(state_nsm_client_t   * pnsmclient,
   struct glist_head    newlocks;
   fsal_op_context_t    fsal_context;
   fsal_status_t        fsal_status;
+  state_nlm_share_t  * found_share;
 
   if(isFullDebug(COMPONENT_STATE))
     {
@@ -2745,6 +2748,7 @@ state_status_t state_nlm_notify(state_nsm_client_t   * pnsmclient,
 
   init_glist(&newlocks);
 
+  /* First remove byte range locks */
   while(errcnt < 100)
     {
       P(pnsmclient->ssc_mutex);
@@ -2842,6 +2846,80 @@ state_status_t state_nlm_notify(state_nsm_client_t   * pnsmclient,
 
       /* Release the lru ref to the cache inode we held while calling unlock */
       cache_inode_lru_unref(pentry, pclient, 0);
+    }
+
+  /* Now remove NLM_SHARE reservations */
+  while(errcnt < 100)
+    {
+      P(pnsmclient->ssc_mutex);
+
+      /* We just need to find any file this client has locks on.
+       * We pick the first lock the client holds, and use it's file.
+       */
+      found_share = glist_first_entry(&pnsmclient->ssc_share_list,
+                                      state_nlm_share_t,
+                                      sns_share_per_client);
+
+      /* If we don't find any entries, then we are done. */
+      if(found_share == NULL)
+        {
+          V(pnsmclient->ssc_mutex);
+          break;
+        }
+
+      /* Extract the cache inode entry from the share */
+      pentry  = found_share->sns_pentry;
+      powner  = found_share->sns_powner;
+      pexport = found_share->sns_pexport;
+
+      /* get a reference to the owner */
+      /** @todo FSF: actually do this when we convert to atomic and don't need lock here */
+#ifdef FSF
+      inc_state_owner_ref_locked(powner);
+#endif
+
+      V(pnsmclient->ssc_mutex);
+
+      /* construct the fsal context based on the export and root credential */
+      fsal_status = FSAL_GetClientContext(&fsal_context,
+                                          &pexport->FS_export_context,
+                                          0,
+                                          0,
+                                          NULL,
+                                          0);
+      if(FSAL_IS_ERROR(fsal_status))
+        {
+#ifdef FSF
+          dec_state_owner_ref_locked(powner);
+#endif
+
+          /* log error here , and continue? */
+          LogDebug(COMPONENT_STATE,
+                   "FSAL_GetClientConext failed");
+          continue;
+        }
+
+      /* Remove all shares held by this NSM Client and Owner on the file */
+      if(state_nlm_unshare(pentry,
+                           &fsal_context,
+                           OPEN4_SHARE_ACCESS_NONE,
+                           OPEN4_SHARE_DENY_NONE,
+                           powner,
+                           pclient,
+                           pstatus) != STATE_SUCCESS)
+        {
+          /* Increment the error count and try the next share, with any luck
+           * the memory pressure which is causing the problem will resolve itself.
+           */
+          LogFullDebug(COMPONENT_STATE,
+                       "state_nlm_unshare returned %s",
+                       state_err_str(*pstatus));
+          errcnt++;
+        }
+
+#ifdef FSF
+      dec_state_owner_ref_locked(powner);
+#endif
     }
 
   /* Put locks from current client incarnation onto end of list */
