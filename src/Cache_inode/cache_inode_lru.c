@@ -624,6 +624,7 @@ lru_thread_delay_ms(unsigned long ms)
  *
  * @return A void pointer, currently NULL.
  */
+#define MAX_SKIP_LIMIT 5
 
 static void *
 lru_thread(void *arg __attribute__((unused)))
@@ -636,6 +637,7 @@ lru_thread(void *arg __attribute__((unused)))
      bool_t extremis = FALSE;
      /* True if we were explicitly woke. */
      bool_t woke = FALSE;
+     uint32_t skip_limit = 0;
 
      SetNameFunction("lru_thread");
 
@@ -734,12 +736,15 @@ lru_thread(void *arg __attribute__((unused)))
              be permanent.  (It will have to adapt heavily to the new
              FSAL API, for example.) */
 
-          if (open_fd_count < lru_state.fds_lowat) {
+          if ((open_fd_count < lru_state.fds_lowat) &&
+              (skip_limit < MAX_SKIP_LIMIT)) {
+               skip_limit++;
                LogDebug(COMPONENT_CACHE_INODE_LRU,
                         "FD count is %d and low water mark is "
-                        "%d: not reaping.",
+                        "%d and skip_limit is %d: not reaping.",
                         open_fd_count,
-                        lru_state.fds_lowat);
+                        lru_state.fds_lowat,
+                        skip_limit);
                if (cache_inode_gc_policy.use_fd_cache &&
                    !lru_state.caching_fds) {
                     lru_state.caching_fds = TRUE;
@@ -762,6 +767,7 @@ lru_thread(void *arg __attribute__((unused)))
 
                LogDebug(COMPONENT_CACHE_INODE_LRU,
                         "Starting to reap.");
+               skip_limit = 0;
 
                if (extremis) {
                     LogDebug(COMPONENT_CACHE_INODE_LRU,
