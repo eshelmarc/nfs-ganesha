@@ -51,7 +51,7 @@ fsal_status_t dumb_fsal_up_invalidate(fsal_up_event_data_t * pevdata)
   cache_inode_status_t cache_status;
 
   LogDebug(COMPONENT_FSAL_UP,
-           "FSAL_UP_DUMB: calling cache_inode_get()");
+           "FSAL_UP_DUMB: calling cache_inode_invalidate()");
 
   /* Lock the entry */
   cache_inode_invalidate(&pevdata->event_context.fsal_data,
