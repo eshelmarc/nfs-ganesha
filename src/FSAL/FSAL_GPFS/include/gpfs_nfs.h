@@ -97,6 +97,7 @@ struct flock
 #define OPENHANDLE_GET_HANDLE     131
 #define OPENHANDLE_READLINK_BY_FD 132
 #define OPENHANDLE_UNLINK_BY_NAME 133
+#define OPENHANDLE_CREATE_BY_NAME 134
 
 int gpfs_ganesha(int op, void *oarg);
 
@@ -469,6 +470,18 @@ struct stat_arg
 #else
     struct stat *buf;
 #endif
+};
+
+struct create_name_arg
+{
+    int mountdirfd;
+    struct gpfs_file_handle *dir_fh;
+    u_int32_t dev;
+    int mode;
+    int len;
+    char *name;
+    struct gpfs_file_handle *new_fh;
+    struct stat *buf;
 };
 
 struct stat_name_arg
