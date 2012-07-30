@@ -534,7 +534,8 @@ int nfs4_op_lock(struct nfs_argop4 *op, compound_data_t * data, struct nfs_resop
                 &lock_desc,
                 &conflict_owner,
                 &conflict_desc,
-                &state_status) != STATE_SUCCESS)
+                &state_status,
+                POSIX_LOCK) != STATE_SUCCESS)
     {
       if(state_status == STATE_LOCK_CONFLICT)
         {

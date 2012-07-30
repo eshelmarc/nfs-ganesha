@@ -1236,6 +1236,13 @@ bool_t xdr_GETFH4resok(xdrs, objp)
 register XDR *xdrs;
 GETFH4resok *objp;
 {
+  unsigned int *fhP;
+
+printf("xxxGETFH4 fh len %d\n", objp->object.nfs_fh4_len);
+  fhP = (int *)&(objp->object.nfs_fh4_val);
+printf("xxxGETFH4: handle %08x %08x %08x %08x %08x %08x %08x\n",
+           fhP[0],fhP[1],fhP[2],fhP[3],fhP[4],fhP[5],fhP[6]);
+
   if(!xdr_nfs_fh4(xdrs, &objp->object))
     return (FALSE);
   return (TRUE);
@@ -2908,10 +2915,18 @@ bool_t xdr_CB_RECALL4args(xdrs, objp)
 register XDR *xdrs;
 CB_RECALL4args *objp;
 {
+  unsigned int *fhP;
+
   if(!xdr_stateid4(xdrs, &objp->stateid))
     return (FALSE);
   if(!xdr_bool(xdrs, &objp->truncate))
     return (FALSE);
+
+printf("xxxCB_RECALL fh len %d\n", objp->fh.nfs_fh4_len);
+  fhP = (int *)&(objp->fh.nfs_fh4_val);
+printf("xxxCB_RECALL: handle %08x %08x %08x %08x %08x %08x %08x\n",
+           fhP[0],fhP[1],fhP[2],fhP[3],fhP[4],fhP[5],fhP[6]);
+
   if(!xdr_nfs_fh4(xdrs, &objp->fh))
     return (FALSE);
   return (TRUE);

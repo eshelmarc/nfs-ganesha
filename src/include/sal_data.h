@@ -536,6 +536,12 @@ struct state_block_data_t
 typedef void state_block_data_t;
 #endif /* !_USE_BLOCKING_LOCKS */
 
+typedef enum lock_type_t
+{
+  POSIX_LOCK,
+  LEASE_LOCK
+} lock_type_t;
+
 struct state_lock_entry_t
 {
   struct glist_head      sle_list;
@@ -554,6 +560,7 @@ struct state_lock_entry_t
   int                    sle_ref_count;
   fsal_lock_param_t      sle_lock;
   pthread_mutex_t        sle_mutex;
+  lock_type_t            sle_type;
 };
 
 #ifdef _PNFS_MDS
