@@ -46,6 +46,7 @@
 #define FSAL_UP_EVENT_SETATTR    11
 #define FSAL_UP_EVENT_UPDATE     12
 #define FSAL_UP_EVENT_INVALIDATE 13
+#define FSAL_UP_EVENT_DELEGATION 14
 
 /* Defines for the flags in callback_arg, keep up to date with CXIUP_xxx */
 #define FSAL_UP_NLINK        0x00000001   /* update nlink */
@@ -187,6 +188,7 @@ typedef struct fsal_up_event_functions__
   fsal_status_t (*fsal_up_setattr) (fsal_up_event_data_t * pevdata );
   fsal_status_t (*fsal_up_update) (fsal_up_event_data_t * pevdata );
   fsal_status_t (*fsal_up_invalidate) (fsal_up_event_data_t * pevdata );
+  fsal_status_t (*fsal_up_delegation) (fsal_up_event_data_t * pevdata );
 } fsal_up_event_functions_t;
 
 #define FSAL_UP_DUMB_TYPE "DUMB"

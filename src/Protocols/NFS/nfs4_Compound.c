@@ -826,11 +826,15 @@ void nfs4_Compound_CopyResOne(nfs_resop4 * pres_dst, nfs_resop4 * pres_src)
       case NFS4_OP_COMMIT:
       case NFS4_OP_CREATE:
       case NFS4_OP_DELEGPURGE:
-      case NFS4_OP_DELEGRETURN:
       case NFS4_OP_GETATTR:
       case NFS4_OP_GETFH:
       case NFS4_OP_LINK:
         break;
+
+      case NFS4_OP_DELEGRETURN:
+        nfs4_op_delegreturn_CopyRes(&(pres_dst->nfs_resop4_u.opdelegreturn),
+                             &(pres_src->nfs_resop4_u.opdelegreturn));
+        return;
 
       case NFS4_OP_LOCK:
         nfs4_op_lock_CopyRes(&(pres_dst->nfs_resop4_u.oplock),

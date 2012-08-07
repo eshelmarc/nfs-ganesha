@@ -190,6 +190,14 @@ retryit:
           pevent->event_data.type.update.upu_flags |= FSAL_UP_NLINK;
         pevent->event_type = FSAL_UP_EVENT_UPDATE;
         break;
+      case BREAK_DELEGATION: /* Delegation Event */
+        LogDebug(COMPONENT_FSAL,
+                 "delegation recall: flags:%x ino %ld",
+                 flags, callback.buf->st_ino);
+        pevent->event_data.type.update.upu_flags = 0;
+        pevent->event_data.type.update.upu_stat_buf = buf;
+        pevent->event_type = FSAL_UP_EVENT_DELEGATION;
+        break;
       case THREAD_STOP: /* GPFS export no longer available */
         LogWarn(COMPONENT_FSAL, "Export is no longer available");
         gsh_free(tmp_handlep);

@@ -1110,8 +1110,15 @@ typedef enum fsal_lock_t
   FSAL_NO_LOCK
 } fsal_lock_t;
 
+typedef enum fsal_sle_type_t
+{
+  FSAL_POSIX_LOCK,
+  FSAL_LEASE_LOCK
+} fsal_sle_type_t;
+
 typedef struct fsal_lock_param_t
 {
+  fsal_sle_type_t     lock_sle_type;
   fsal_lock_t         lock_type;
   fsal_off_t          lock_start;
   fsal_size_t         lock_length;

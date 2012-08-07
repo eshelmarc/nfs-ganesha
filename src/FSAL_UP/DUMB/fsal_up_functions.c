@@ -39,6 +39,31 @@
 #include "HashTable.h"
 #include "fsal_up.h"
 #include "sal_functions.h"
+#include "nfs_rpc_callback.h"
+
+static int32_t cb_completion_func(rpc_call_t* call, rpc_call_hook hook,
+                                 void* arg, uint32_t flags)
+{
+  char *fh;
+
+  LogDebug(COMPONENT_NFS_CB, "%p %s", call,
+           (hook == RPC_CALL_ABORT) ?
+           "RPC_CALL_ABORT" :
+           "RPC_CALL_COMPLETE");
+  switch (hook) {
+    case RPC_CALL_COMPLETE:
+        /* potentially, do something more interesting here */
+        LogDebug(COMPONENT_NFS_CB, "call result: %d", call->stat);
+        fh = call->cbt.v_u.v4.args.argarray.argarray_val->nfs_cb_argop4_u.opcbrecall.fh.nfs_fh4_val;
+        gsh_free(fh);
+        cb_compound_free(&call->cbt);
+        break;
+    default:
+        LogDebug(COMPONENT_NFS_CB, "%p unknown hook %d", call, hook);
+        break;
+  }
+  return (0);
+}
 
 /* Set the FSAL UP functions that will be used to process events.
  * This is called DUMB_FSAL_UP because it only invalidates cache inode
@@ -99,6 +124,126 @@ fsal_status_t dumb_fsal_up_update(fsal_up_event_data_t * pevdata)
   ReturnCode(ERR_FSAL_NO_ERROR, 0);
 }
 
+fsal_status_t fsal_up_delegation(fsal_up_event_data_t * pevdata)
+{
+  cache_inode_status_t cache_status;
+  cache_entry_t *pentry = NULL;
+  fsal_attrib_list_t attr;
+  nfs_client_id_t *clid = NULL;
+  rpc_call_channel_t *chan;
+  int32_t code = 0;
+  nfs_cb_argop4 argop[1];
+  rpc_call_t *call;
+  struct glist_head  * glist;
+  state_lock_entry_t * found_entry = NULL;
+  fsal_handle_t *pfsal_handle = NULL;
+  char *maxfh;
+  compound_data_t data;
+
+  maxfh = gsh_malloc(NFS4_FHSIZE);     // free in cb_completion_func()
+  if(maxfh == NULL)
+    {
+      LogDebug(COMPONENT_FSAL_UP,
+               "FSAL_UP_DELEG: no mem, failed.");
+      /* Not an error. Expecting some nodes will not have it in cache in
+       * a cluster. */
+      ReturnCode(ERR_FSAL_NO_ERROR, 0);
+    }
+
+  memset(&attr, 0, sizeof(fsal_attrib_list_t));
+
+  pentry = cache_inode_get(&pevdata->event_context.fsal_data,
+                           &attr,  NULL, NULL, &cache_status);
+  if(pentry == NULL)
+    {
+      LogDebug(COMPONENT_FSAL_UP,
+               "FSAL_UP_DELEG: cache inode get failed.");
+      /* Not an error. Expecting some nodes will not have it in cache in
+       * a cluster. */
+      ReturnCode(ERR_FSAL_NO_ERROR, 0);
+    }
+
+  LogDebug(COMPONENT_FSAL_UP,
+          "FSAL_UP_DELEG: Invalidate cache found entry %p type %u",
+          pentry, pentry->type);
+
+  pthread_rwlock_wrlock(&pentry->state_lock);
+
+  glist_for_each(glist, &pentry->object.file.lock_list)
+  {
+      found_entry = glist_entry(glist, state_lock_entry_t, sle_list);
+
+      if (found_entry != NULL)
+      {
+          LogDebug(COMPONENT_NFS_CB,"found_entry %p", found_entry);
+      }
+      else
+      {
+          LogDebug(COMPONENT_NFS_CB,"list is empty %p", found_entry);
+          pthread_rwlock_unlock(&pentry->state_lock);
+          ReturnCode(ERR_FSAL_NO_ERROR, 0);
+      }
+      break;
+  }
+  pthread_rwlock_unlock(&pentry->state_lock);
+
+  if (found_entry != NULL) {
+
+    code  = nfs_client_id_get_confirmed(found_entry->sle_owner->so_owner.so_nfs4_owner.so_clientid, &clid);
+    if (code != CLIENT_ID_SUCCESS) {
+        LogCrit(COMPONENT_NFS_CB,
+                "No clid record  code %d", code);
+        ReturnCode(ERR_FSAL_NO_ERROR, 0);
+    }
+    chan = nfs_rpc_get_chan(clid, NFS_RPC_FLAG_NONE);
+    if (! chan) {
+        LogCrit(COMPONENT_NFS_CB, "nfs_rpc_get_chan failed");
+        ReturnCode(ERR_FSAL_NO_ERROR, 0);
+    }
+    if (! chan->clnt) {
+        LogCrit(COMPONENT_NFS_CB, "nfs_rpc_get_chan failed (no clnt)");
+        ReturnCode(ERR_FSAL_NO_ERROR, 0);
+    }
+
+    /* allocate a new call--freed in completion hook */
+    call = alloc_rpc_call();
+    call->chan = chan;
+
+    /* setup a compound */
+    cb_compound_init_v4(&call->cbt, 6, clid->cid_cb.cb_u.v40.cb_callback_ident,
+                        "brrring!!!", 10);
+
+    memset(argop, 0, sizeof(nfs_cb_argop4));
+    argop->argop = NFS4_OP_CB_RECALL;
+    argop->nfs_cb_argop4_u.opcbrecall.stateid.seqid = found_entry->sle_state->state_seqid;
+    memcpy(argop->nfs_cb_argop4_u.opcbrecall.stateid.other,
+           found_entry->sle_state->stateid_other, OTHERSIZE);
+    argop->nfs_cb_argop4_u.opcbrecall.truncate = TRUE;
+
+    pfsal_handle = &found_entry->sle_pentry->handle;
+
+    /* Convert it to a file handle */
+    argop->nfs_cb_argop4_u.opcbrecall.fh.nfs_fh4_len = 0;
+    argop->nfs_cb_argop4_u.opcbrecall.fh.nfs_fh4_val = maxfh;
+
+    data.pexport = found_entry->sle_pexport;
+    if(!nfs4_FSALToFhandle(&argop->nfs_cb_argop4_u.opcbrecall.fh,
+                           pfsal_handle, &data))
+       ReturnCode(ERR_FSAL_NOENT, 0);
+
+    /* add ops, till finished (dont exceed count) */
+    cb_compound_add_op(&call->cbt, argop);
+
+    /* set completion hook */
+    call->call_hook = cb_completion_func;
+
+    /* call it (here, in current thread context) */
+    code = nfs_rpc_submit_call(call,
+                               NFS_RPC_FLAG_NONE /* NFS_RPC_CALL_INLINE */);
+  }
+  ReturnCode(ERR_FSAL_NO_ERROR, 0);
+}
+
 #define INVALIDATE_STUB {                     \
     return dumb_fsal_up_invalidate_step1(pevdata);  \
   } while(0);
@@ -131,6 +276,11 @@ fsal_status_t dumb_fsal_up_write(fsal_up_event_data_t * pevdata)
 fsal_status_t dumb_fsal_up_link(fsal_up_event_data_t * pevdata)
 {
   INVALIDATE_STUB;
+}
+
+fsal_status_t dumb_fsal_up_delegation(fsal_up_event_data_t * pevdata)
+{
+  return fsal_up_delegation(pevdata);
 }
 
 fsal_status_t dumb_fsal_up_lock_grant(fsal_up_event_data_t * pevdata)
@@ -237,7 +387,8 @@ fsal_up_event_functions_t dumb_event_func = {
   .fsal_up_close = dumb_fsal_up_close,
   .fsal_up_setattr = dumb_fsal_up_setattr,
   .fsal_up_update = dumb_fsal_up_update,
-  .fsal_up_invalidate = dumb_fsal_up_invalidate_step1
+  .fsal_up_invalidate = dumb_fsal_up_invalidate_step1,
+  .fsal_up_delegation = dumb_fsal_up_delegation
 };
 
 fsal_up_event_functions_t *get_fsal_up_dumb_functions()

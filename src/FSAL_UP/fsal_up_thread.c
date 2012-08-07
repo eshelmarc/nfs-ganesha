@@ -358,6 +358,10 @@ fsal_status_t process_event(fsal_up_event_t *myevent, fsal_up_event_functions_t 
       LogFullDebug(COMPONENT_FSAL_UP, "FSAL_UP: Process INVALIDATE event");
       myevent->event_process_func = event_func->fsal_up_invalidate;
       break;
+    case FSAL_UP_EVENT_DELEGATION:
+      LogFullDebug(COMPONENT_FSAL_UP, "FSAL_UP: Process Delegation event");
+      myevent->event_process_func = event_func->fsal_up_delegation;
+      break;
     default:
       LogWarn(COMPONENT_FSAL_UP, "Unknown FSAL UP event type found: %d",
               myevent->event_type);
