@@ -780,7 +780,7 @@ static void handle_to_key(struct fsal_obj_handle *obj_hdl,
 
 	myself = container_of(obj_hdl, struct gpfs_fsal_obj_handle, obj_handle);
 	fh_desc->addr = myself->handle;
-	fh_desc->len = gpfs_sizeof_handle(myself->handle);
+	fh_desc->len = myself->handle->handle_key_size;
 }
 
 /*

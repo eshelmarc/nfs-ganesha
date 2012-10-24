@@ -390,6 +390,15 @@ fsal_status_t fsal_internal_init_global(fsal_init_info_t * fsal_info,
 }
 #endif
 
+
+static void gpfs_set_key(struct gpfs_file_handle *fh)
+{
+  fh->handle_key_size = sizeof(struct gpfs_file_handle)
+                        - OPENHANDLE_HANDLE_LEN
+                        + fh->handle_key_size;
+}
+
+
 /*********************************************************************
  *
  *  GPFS FSAL char device driver interaces
@@ -508,6 +517,8 @@ fsal_internal_get_handle(const char              *p_fsalpath, /* IN */
   if(rc < 0)
     return fsalstat(posix2fsal_error(errno), errno);
 
+  gpfs_set_key(p_handle);
+
   return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
@@ -548,6 +559,8 @@ fsal_status_t fsal_internal_get_handle_at(int dfd, const char *p_fsalname, /* IN
 
   if(rc < 0)
     return fsalstat(posix2fsal_error(errno), errno);
+
+  gpfs_set_key(p_handle);
 
   return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
@@ -596,6 +609,8 @@ fsal_status_t fsal_internal_get_handle_at(int dfd, const char *p_fsalname, /* IN
   if(rc < 0)
     return fsalstat(posix2fsal_error(errno), errno);
 
+  gpfs_set_key(p_out_fh);
+
   return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
@@ -634,6 +649,8 @@ fsal_status_t fsal_internal_fd2handle(int fd, struct gpfs_file_handle * p_handle
 
   if(rc < 0)
     return fsalstat(posix2fsal_error(errno), errno);
+
+  gpfs_set_key(p_handle);
 
   return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
@@ -803,6 +820,8 @@ fsal_status_t fsal_internal_create(int dirfd,
 
   if(rc < 0)
     return fsalstat(posix2fsal_error(errno), errno);
+
+  gpfs_set_key(p_new_handle);
 
   return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
