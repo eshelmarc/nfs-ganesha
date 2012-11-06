@@ -1824,6 +1824,8 @@ state_status_t do_lock_op(cache_entry_t        * pentry,
   fsal_lock_param_t     conflicting_lock;
   struct fsal_export *export = pentry->obj_handle->export;
 
+  plock->lock_sle_type = sle_type;
+
   /* Quick exit if:
    * Locks are not supported by FSAL
    * Async blocking locks are not supported and this is a cancel
@@ -2322,7 +2324,7 @@ state_status_t state_lock(cache_entry_t         * pentry,
                             allow ? holder : NULL,
                             allow ? conflict : NULL,
                             overlap,
-                            POSIX_LOCK);
+                            sle_type);
     }
   else
     *pstatus = STATE_LOCK_BLOCKED;
@@ -2512,7 +2514,7 @@ state_status_t state_unlock(cache_entry_t        * pentry,
                         NULL,   /* no conflict expected */
                         NULL,
                         false,
-                        POSIX_LOCK);
+                        sle_type);
 
   if(*pstatus != STATE_SUCCESS)
     LogMajor(COMPONENT_STATE,
