@@ -980,6 +980,42 @@ layoutrecall_queue(struct fsal_up_event_layoutrecall *layoutrecall,
         }
 };
 
+static int
+recallany_imm(struct fsal_up_event_recallany *recallany,
+              void **private)
+{
+  LogCrit(COMPONENT_FSAL_UP,
+          "RECALL ANY is not supported");;
+  return ENOTSUP;
+}
+
+static void
+recallany_queue(struct fsal_up_event_recallany *recallany,
+                void *private)
+{
+  LogCrit(COMPONENT_FSAL_UP,
+          "RECALL ANY is not supported");;
+  return;
+}
+
+static int
+notifydevice_imm(struct fsal_up_event_notifydevice *devicenotify,
+              void **private)
+{
+  LogCrit(COMPONENT_FSAL_UP,
+          "DEVICE NOTIFY is not supported");;
+  return ENOTSUP;
+}
+
+static void
+notifydevice_queue(struct fsal_up_event_notifydevice *devicenotify,
+                void *private)
+{
+  LogCrit(COMPONENT_FSAL_UP,
+          "DEVICE NOTIFY is not supported");;
+  return;
+}
+
 static void
 delegrecall_one(state_lock_entry_t *found_entry,
 		cache_entry_t *pentry)
@@ -1132,6 +1168,12 @@ struct fsal_up_vector fsal_up_top = {
 
         .layoutrecall_imm = layoutrecall_imm,
         .layoutrecall_queue = layoutrecall_queue,
+
+        .recallany_imm = recallany_imm,
+        .recallany_queue = recallany_queue,
+
+        .notifydevice_imm = notifydevice_imm,
+        .notifydevice_queue = notifydevice_queue,
 
         .delegrecall_imm = delegrecall_imm,
         .delegrecall_queue = delegrecall_queue
