@@ -212,7 +212,7 @@ int nfs4_op_write(struct nfs_argop4 *op,
       /* Special stateid, no open state, check to see if any share conflicts */
       state_open = NULL;
 
-      pthread_rwlock_rdlock(&entry->state_lock);
+      PTHREAD_RWLOCK_rdlock(&entry->state_lock);
       anonymous = true;
 
       /*
@@ -223,7 +223,7 @@ int nfs4_op_write(struct nfs_argop4 *op,
                                                      FATTR4_ATTR_WRITE);
       if(res_WRITE4.status != NFS4_OK)
         {
-          pthread_rwlock_unlock(&entry->state_lock);
+          PTHREAD_RWLOCK_unlock(&entry->state_lock);
           return res_WRITE4.status;
         }
     }
@@ -235,8 +235,9 @@ int nfs4_op_write(struct nfs_argop4 *op,
 					data->req_ctx);
       if (cache_status != CACHE_INODE_SUCCESS)
         {
-          res_WRITE4.status = nfs4_Errno(cache_status);;
-          pthread_rwlock_unlock(&entry->state_lock);
+          res_WRITE4.status = nfs4_Errno(cache_status);
+          if (anonymous)
+            PTHREAD_RWLOCK_unlock(&entry->state_lock);
           return res_WRITE4.status;
         }
     }
@@ -257,7 +258,7 @@ int nfs4_op_write(struct nfs_argop4 *op,
         res_WRITE4.status = NFS4ERR_DQUOT;
         if (anonymous)
           {
-            pthread_rwlock_unlock(&entry->state_lock);
+            PTHREAD_RWLOCK_unlock(&entry->state_lock);
           }
         return res_WRITE4.status;
       }
@@ -308,7 +309,7 @@ int nfs4_op_write(struct nfs_argop4 *op,
       res_WRITE4.status = NFS4_OK;
       if (anonymous)
         {
-          pthread_rwlock_unlock(&entry->state_lock);
+          PTHREAD_RWLOCK_unlock(&entry->state_lock);
         }
       return res_WRITE4.status;
     }
@@ -346,7 +347,7 @@ int nfs4_op_write(struct nfs_argop4 *op,
       res_WRITE4.status = nfs4_Errno(cache_status);
       if (anonymous)
         {
-          pthread_rwlock_unlock(&entry->state_lock);
+          PTHREAD_RWLOCK_unlock(&entry->state_lock);
         }
       return res_WRITE4.status;
     }
@@ -371,7 +372,7 @@ int nfs4_op_write(struct nfs_argop4 *op,
 
   if (anonymous)
     {
-      pthread_rwlock_unlock(&entry->state_lock);
+      PTHREAD_RWLOCK_unlock(&entry->state_lock);
     }
 
   return res_WRITE4.status;

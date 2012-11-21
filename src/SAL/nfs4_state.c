@@ -282,10 +282,10 @@ state_status_t state_add(cache_entry_t *entry,
       return STATE_BAD_TYPE;
     }
 
-  pthread_rwlock_wrlock(&entry->state_lock);
+  PTHREAD_RWLOCK_wrlock(&entry->state_lock);
   status = state_add_impl(entry, state_type, state_data, owner_input,
 			  state, refer);
-  pthread_rwlock_unlock(&entry->state_lock);
+  PTHREAD_RWLOCK_unlock(&entry->state_lock);
 
   return status;
 }
@@ -360,16 +360,18 @@ state_status_t state_del_locked(state_t *state,
  * @return Status of operation
  *
  */
-state_status_t state_del(state_t *state)
+state_status_t state_del(state_t *state, bool hold_lock)
 {
   cache_entry_t *entry = state->state_entry;
   state_status_t status = 0;
 
-  pthread_rwlock_wrlock(&entry->state_lock);
+  if (!hold_lock)
+    PTHREAD_RWLOCK_wrlock(&entry->state_lock);
 
   status = state_del_locked(state, state->state_entry);
 
-  pthread_rwlock_unlock(&entry->state_lock);
+  if (!hold_lock)
+    PTHREAD_RWLOCK_unlock(&entry->state_lock);
 
   return status;
 }
@@ -423,7 +425,7 @@ void release_lockstate(state_owner_t *lock_owner)
         LogCrit(COMPONENT_CLIENTID,
                 "Ugliness - cache_inode_lru_ref has returned non-success");
 
-      state_status = state_del(state_found);
+      state_status = state_del(state_found, false);
       if (state_status != STATE_SUCCESS)
 	{
 	  LogDebug(COMPONENT_CLIENTID,
@@ -463,7 +465,7 @@ void release_openstate(state_owner_t *open_owner)
         LogCrit(COMPONENT_CLIENTID,
                 "Ugliness - cache_inode_lru_ref has returned non-success");
 
-      pthread_rwlock_wrlock(&entry->state_lock);
+      PTHREAD_RWLOCK_wrlock(&entry->state_lock);
 
       if(state_found->state_type == STATE_TYPE_SHARE)
         {
@@ -490,7 +492,7 @@ void release_openstate(state_owner_t *open_owner)
       /* Close the file in FSAL through the cache inode */
       cache_inode_close(entry, 0);
 
-      pthread_rwlock_unlock(&entry->state_lock);
+      PTHREAD_RWLOCK_unlock(&entry->state_lock);
 
       /* Release the lru ref to the cache inode we held while calling state_del */
       cache_inode_lru_unref(entry,
