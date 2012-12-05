@@ -1615,7 +1615,8 @@ struct fsal_obj_ops {
                                uint64_t offset,
                                size_t buffer_size,
                                void *buffer,
-                               size_t *wrote_amount);
+                               size_t *wrote_amount,
+                               bool *stable);
 /**
  * @brief Commit written data
  *
