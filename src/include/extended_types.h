@@ -46,12 +46,4 @@
 #include <os/freebsd/extended_types.h>
 #endif
 
-/* Added extended types, often missing */
-typedef long long longlong_t;
-typedef unsigned long long u_longlong_t;
-
-typedef unsigned int uint_t;
-typedef unsigned int uint32_t;
-
-
 #endif                          /* _EXTENDED_TYPES_H */
