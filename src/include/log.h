@@ -517,7 +517,7 @@ extern log_component_info __attribute__ ((__unused__)) LogComponents[COMPONENT_C
   do { \
     if (unlikely(LogComponents[component].comp_log_level >= NIV_DEBUG)) \
       DisplayLogComponentLevel(component,  (char *)__FUNCTION__, NIV_DEBUG, \
-                               "%s: DEBUG: " format, \
+                               "%s: B_DBG: " format, \
                                LogComponents[component].comp_str, ## args ); \
   } while (0)
 
@@ -525,7 +525,7 @@ extern log_component_info __attribute__ ((__unused__)) LogComponents[COMPONENT_C
   do { \
     if (unlikely(LogComponents[component].comp_log_level >= NIV_MID_DEBUG)) \
       DisplayLogComponentLevel(component,  (char *)__FUNCTION__, NIV_MID_DEBUG, \
-                               "%s: MID DEBUG: " format, \
+                               "%s: M_DBG: " format, \
                                LogComponents[component].comp_str, ## args ); \
   } while (0)
 
@@ -533,7 +533,7 @@ extern log_component_info __attribute__ ((__unused__)) LogComponents[COMPONENT_C
   do { \
     if (unlikely(LogComponents[component].comp_log_level >= NIV_FULL_DEBUG)) \
       DisplayLogComponentLevel(component, (char *)__FUNCTION__, NIV_FULL_DEBUG, \
-                               "%s: FULLDEBUG: " format, \
+                               "%s: F_DBG: " format, \
                                LogComponents[component].comp_str, ## args ); \
   } while (0)
 
@@ -570,5 +570,30 @@ extern log_component_info __attribute__ ((__unused__)) LogComponents[COMPONENT_C
  *  Re-export component logging to TI-RPC internal logging
  */
 void rpc_warnx(/* const */ char *fmt, ...);
+
+enum log_location
+{
+  GANESHA,
+  FSAL,
+  BOTH
+};
+
+/*
+ *  Alternative way to log trace records.
+ */
+struct fsal_trace {
+   void (*trace_me)(int level, char *msg);
+   log_levels_t low_log;
+   enum log_location low_loc;
+   log_levels_t high_log;
+   enum log_location high_loc;
+};
+
+void set_fsal_trace(void (*trace_me)(int level, char *msg),
+                                    log_levels_t low_log,
+                                    enum log_location low_loc,
+                                    log_levels_t high_log,
+                                    enum log_location high_loc
+                                   );
 
 #endif

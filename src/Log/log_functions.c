@@ -64,9 +64,9 @@ log_level_t tabLogLevel[] =
   {NIV_WARN,       "NIV_WARN",       "WARN",       LOG_WARNING},
   {NIV_EVENT,      "NIV_EVENT",      "EVENT",      LOG_NOTICE},
   {NIV_INFO,       "NIV_INFO",       "INFO",       LOG_INFO},
-  {NIV_DEBUG,      "NIV_DEBUG",      "DEBUG",      LOG_DEBUG},
-  {NIV_MID_DEBUG,  "NIV_MID_DEBUG",  "MID_DEBUG",  LOG_DEBUG},
-  {NIV_FULL_DEBUG, "NIV_FULL_DEBUG", "FULL_DEBUG", LOG_DEBUG}
+  {NIV_DEBUG,      "NIV_DEBUG",      "B_DBG",        LOG_DEBUG},
+  {NIV_MID_DEBUG,  "NIV_MID_DEBUG",  "M_DBG",      LOG_DEBUG},
+  {NIV_FULL_DEBUG, "NIV_FULL_DEBUG", "F_DBG",      LOG_DEBUG}
 };
 
 #ifndef ARRAY_SIZE
@@ -464,7 +464,10 @@ void _SetLevelDebug(int level_to_set)
     level_to_set = NB_LOG_LEVEL - 1;
 
   for (i = COMPONENT_ALL; i < COMPONENT_COUNT; i++)
+  {
       LogComponents[i].comp_log_level = level_to_set;
+//      LogComponents[i].comp_log_loc = GANESHA;
+  }
 }                               /* SetLevelDebug */
 
 void SetLevelDebug(int level_to_set)
@@ -490,6 +493,23 @@ static void DecrementeLevelDebug()
   LogChanges("SIGUSR2 Decreasing log level for all components to %s",
              ReturnLevelInt(LogComponents[COMPONENT_ALL].comp_log_level));
 }                               /* DecrementeLevelDebug */
+
+struct fsal_trace trace = {
+         .trace_me = NULL
+};
+
+void set_fsal_trace(void (*trace_me)(int level, char *msg),
+                                    log_levels_t low_log,
+                                    enum log_location low_loc,
+                                    log_levels_t high_log,
+                                    enum log_location high_loc)
+{
+  trace.trace_me = trace_me;
+  trace.low_log = low_log;
+  trace.low_loc = low_loc;
+  trace.high_log = high_log;
+  trace.high_loc = high_loc;
+}
 
 void InitLogging()
 {
@@ -533,33 +553,51 @@ void InitLogging()
  * Une fonction d'affichage tout a fait generique
  */
 
-static void DisplayLogString_valist(char *buff_dest, char * function, log_components_t component, char *format, va_list arguments)
+static void DisplayLogString_valist(char *buff_dest, char * function,
+                                   log_components_t component, log_levels_t level,
+                                   char *format, va_list arguments)
 {
   char texte[STR_LEN_TXT];
   struct tm the_date;
   time_t tm;
   const char *threadname = Log_GetThreadFunction(component != COMPONENT_LOG_EMERG);
 
-  tm = time(NULL);
-  Localtime_r(&tm, &the_date);
-
   /* Ecriture sur le fichier choisi */
   log_vsnprintf(texte, STR_LEN_TXT, format, arguments);
 
-  if(LogComponents[component].comp_log_level < LogComponents[LOG_MESSAGE_VERBOSITY].comp_log_level)
-    snprintf(buff_dest, STR_LEN_TXT,
-             "%.2d/%.2d/%.4d %.2d:%.2d:%.2d epoch=%ld : %s : %s-%d[%s] :%s\n",
-             the_date.tm_mday, the_date.tm_mon + 1, 1900 + the_date.tm_year,
-             the_date.tm_hour, the_date.tm_min, the_date.tm_sec, tm, nom_host,
-             nom_programme, getpid(), threadname,
-             texte);
+  /* If there is another trace faciliy, pass all records to it but no need for
+     time stemp if going only to FSAL. */
+  if(trace.trace_me && level >= trace.high_log && trace.high_loc == FSAL)
+  {
+    if(LogComponents[component].comp_log_level < LogComponents[LOG_MESSAGE_VERBOSITY].comp_log_level)
+      snprintf(buff_dest, STR_LEN_TXT,
+               "ep=%ld [%s] %s\n",
+                tm, threadname, texte);
+    else
+      snprintf(buff_dest, STR_LEN_TXT,
+               "ep=%ld [%s] %s :%s\n",
+                tm, threadname, function, texte);
+  }
   else
-    snprintf(buff_dest, STR_LEN_TXT,
-             "%.2d/%.2d/%.4d %.2d:%.2d:%.2d epoch=%ld : %s : %s-%d[%s] :%s :%s\n",
-             the_date.tm_mday, the_date.tm_mon + 1, 1900 + the_date.tm_year,
-             the_date.tm_hour, the_date.tm_min, the_date.tm_sec, tm, nom_host,
-             nom_programme, getpid(), threadname, function,
-             texte);
+  {
+     tm = time(NULL);
+     Localtime_r(&tm, &the_date);
+
+    if(LogComponents[component].comp_log_level < LogComponents[LOG_MESSAGE_VERBOSITY].comp_log_level)
+      snprintf(buff_dest, STR_LEN_TXT,
+               "%.2d/%.2d/%.2d %.2d:%.2d:%.2d ep=%ld [%s] %s\n",
+               the_date.tm_mday, the_date.tm_mon + 1, (the_date.tm_year - 100),
+               the_date.tm_hour, the_date.tm_min, the_date.tm_sec, tm,
+               threadname,
+               texte);
+    else
+      snprintf(buff_dest, STR_LEN_TXT,
+               "%.2d/%.2d/%.2d %.2d:%.2d:%.2d ep=%ld [%s] %s :%s\n",
+               the_date.tm_mday, the_date.tm_mon + 1, (the_date.tm_year - 100),
+               the_date.tm_hour, the_date.tm_min, the_date.tm_sec, tm,
+               threadname, function,
+               texte);
+  }
 }                               /* DisplayLogString_valist */
 
 static int DisplayLogSyslog_valist(log_components_t component, char * function,
@@ -586,15 +624,28 @@ static int DisplayLogSyslog_valist(log_components_t component, char * function,
 } /* DisplayLogSyslog_valist */
 
 static int DisplayLogFlux_valist(FILE * flux, char * function,
-                                 log_components_t component, char *format,
-                                 va_list arguments)
+                                 log_components_t component, log_levels_t level,
+                                 char *format, va_list arguments)
 {
   char tampon[STR_LEN_TXT];
 
-  DisplayLogString_valist(tampon, function, component, format, arguments);
+  DisplayLogString_valist(tampon, function, component, level, format, arguments);
 
-  fprintf(flux, "%s", tampon);
-  return fflush(flux);
+  /* If there is another trace faciliy, pass all records to it but copy some
+     records to the Ganesha log */
+  if(trace.trace_me &&
+     (level <= trace.low_log && trace.low_loc != GANESHA) ||
+     (level >= trace.high_log && trace.high_loc != GANESHA))
+    trace.trace_me(LogComponents[component].comp_log_level, tampon);
+
+  if(!trace.trace_me ||
+     (level <= trace.low_log && trace.low_loc != FSAL) ||
+     (level >= trace.high_log && trace.high_loc != FSAL))
+  {
+    fprintf(flux, "%s", tampon);
+    return fflush(flux);
+  }
+  return 0;
 }                               /* DisplayLogFlux_valist */
 
 static int DisplayTest_valist(log_components_t component, char *format,
@@ -615,13 +666,27 @@ static int DisplayBuffer_valist(char *buffer, log_components_t component,
 }
 
 static int DisplayLogPath_valist(char *path, char * function,
-                                 log_components_t component, char *format,
-                                 va_list arguments)
+                                 log_components_t component, log_levels_t level,
+                                 char *format, va_list arguments)
 {
   char tampon[STR_LEN_TXT];
   int fd, my_status;
 
-  DisplayLogString_valist(tampon, function, component, format, arguments);
+  DisplayLogString_valist(tampon, function, component, level, format, arguments);
+
+  /* If there is another trace faciliy, pass all records to it but copy some
+     records to the Ganesha log */
+  if(trace.trace_me &&
+     (level <= trace.low_log && trace.low_loc != GANESHA) ||
+     (level >= trace.high_log && trace.high_loc != GANESHA))
+    trace.trace_me(LogComponents[component].comp_log_level, tampon);
+
+  if(trace.trace_me &&
+     (level <= trace.low_log && trace.low_loc == FSAL) ||
+     (level >= trace.high_log && trace.high_loc == FSAL))
+    {
+      return SUCCES;
+    }
 
   if(path[0] != '\0')
     {
@@ -1134,13 +1199,13 @@ int DisplayLogComponentLevel(log_components_t component,
       rc = DisplayLogSyslog_valist(component, function, level, format, arguments);
       break;
     case FILELOG:
-      rc = DisplayLogPath_valist(LogComponents[component].comp_log_file, function, component, format, arguments);
+      rc = DisplayLogPath_valist(LogComponents[component].comp_log_file, function, component, level, format, arguments);
       break;
     case STDERRLOG:
-      rc = DisplayLogFlux_valist(stderr, function, component, format, arguments);
+      rc = DisplayLogFlux_valist(stderr, function, component, level, format, arguments);
       break;
     case STDOUTLOG:
-      rc = DisplayLogFlux_valist(stdout, function, component, format, arguments);
+      rc = DisplayLogFlux_valist(stdout, function, component, level, format, arguments);
       break;
     case TESTLOG:
       rc = DisplayTest_valist(component, format, arguments);
@@ -1329,13 +1394,13 @@ rpc_warnx(/* const */ char *fmt, ...)
       break;
     case FILELOG:
       DisplayLogPath_valist(LogComponents[comp].comp_log_file, "rpc",
-                            comp, fmt, ap);
+                            comp, 0, fmt, ap);
       break;
     case STDERRLOG:
-      DisplayLogFlux_valist(stderr, "rpc", comp, fmt, ap);
+      DisplayLogFlux_valist(stderr, "rpc", comp, 0, fmt, ap);
       break;
     case STDOUTLOG:
-      DisplayLogFlux_valist(stdout, "rpc", comp, fmt, ap);
+      DisplayLogFlux_valist(stdout, "rpc", comp, 0, fmt, ap);
       break;
     case TESTLOG:
       DisplayTest_valist(comp, fmt, ap);

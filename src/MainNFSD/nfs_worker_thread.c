@@ -1279,7 +1279,7 @@ nfs_Init_worker_data(nfs_worker_data_t *data)
     return -1;
 
   snprintf(
-      thr_name, sizeof(thr_name), "Worker Thread #%u", data->worker_index);
+      thr_name, sizeof(thr_name), "WT #%u", data->worker_index);
   if(tcb_new(&(data->wcb), thr_name) != 0)
     return -1;
 
@@ -1353,7 +1353,7 @@ void *worker_thread(void *IndexArg)
   gsh_xprt_private_t *xu = NULL;
   uint32_t refcnt;
 
-  snprintf(thr_name, sizeof(thr_name), "Worker Thread #%lu", worker_index);
+  snprintf(thr_name, sizeof(thr_name), "WT #%lu", worker_index);
   SetNameFunction(thr_name);
 
   /* save current signal mask */

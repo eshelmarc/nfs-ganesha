@@ -105,6 +105,21 @@ struct fsal_staticfsinfo_t *gpfs_staticinfo(struct fsal_module *hdl)
  * must be called with a reference taken (via lookup_fsal)
  */
 
+static void
+gpfs_trace(int level, char *msg)
+{
+  struct trace_arg targ;
+
+  if (level > 0)
+  {
+    targ.level = level;
+    targ.len = strlen(msg);
+    targ.str = msg;
+    gpfs_ganesha(OPENHANDLE_TRACE_ME, &targ);
+  }
+  return;
+};
+
 static fsal_status_t init_config(struct fsal_module *fsal_hdl,
 				 config_file_t config_struct)
 {
@@ -120,8 +135,11 @@ static fsal_status_t init_config(struct fsal_module *fsal_hdl,
                                        &gpfs_me->fs_info,
                                        NULL);
 
+        set_fsal_trace(gpfs_trace, NIV_INFO, BOTH, NIV_DEBUG, FSAL);
+
 	if(FSAL_IS_ERROR(fsal_status))
 		return fsal_status;
+
 	/* if we have fsal specific params, do them here
 	 * fsal_hdl->name is used to find the block containing the
 	 * params.
@@ -182,6 +200,8 @@ MODULE_INIT void gpfs_init(void) {
 
 MODULE_FINI void gpfs_unload(void) {
 	int retval;
+
+        set_fsal_trace(NULL, 0, 0, 0, 0);
 
 	retval = unregister_fsal(&GPFS.fsal);
 	if(retval != 0) {
