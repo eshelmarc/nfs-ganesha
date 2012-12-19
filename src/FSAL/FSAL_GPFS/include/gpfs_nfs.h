@@ -98,6 +98,14 @@ struct flock
 #define OPENHANDLE_CREATE_BY_NAME 134
 #define OPENHANDLE_READ_BY_FD     135
 #define OPENHANDLE_WRITE_BY_FD    136
+#define OPENHANDLE_TRACE_ME       150
+
+struct trace_arg
+{
+  uint32_t level;
+  uint32_t len;
+  char     *str;
+};
 
 int gpfs_ganesha(int op, void *oarg);
 

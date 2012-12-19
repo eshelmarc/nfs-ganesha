@@ -571,4 +571,29 @@ extern log_component_info __attribute__ ((__unused__)) LogComponents[COMPONENT_C
  */
 void rpc_warnx(/* const */ char *fmt, ...);
 
+enum log_location
+{
+  GANESHA,
+  FSAL,
+  BOTH
+};
+
+/*
+ *  Alternative way to log trace records.
+ */
+struct fsal_trace {
+   void (*trace_me)(int level, char *msg);
+   log_levels_t low_log;
+   enum log_location low_loc;
+   log_levels_t high_log;
+   enum log_location high_loc;
+};
+
+void set_fsal_trace(void (*trace_me)(int level, char *msg),
+                                    log_levels_t low_log,
+                                    enum log_location low_loc,
+                                    log_levels_t high_log,
+                                    enum log_location high_loc
+                                   );
+
 #endif
