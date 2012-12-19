@@ -517,7 +517,7 @@ extern log_component_info __attribute__ ((__unused__)) LogComponents[COMPONENT_C
   do { \
     if (unlikely(LogComponents[component].comp_log_level >= NIV_DEBUG)) \
       DisplayLogComponentLevel(component,  (char *)__FUNCTION__, NIV_DEBUG, \
-                               "%s: DEBUG: " format, \
+                               "%s: DBG1: " format, \
                                LogComponents[component].comp_str, ## args ); \
   } while (0)
 
@@ -525,7 +525,7 @@ extern log_component_info __attribute__ ((__unused__)) LogComponents[COMPONENT_C
   do { \
     if (unlikely(LogComponents[component].comp_log_level >= NIV_MID_DEBUG)) \
       DisplayLogComponentLevel(component,  (char *)__FUNCTION__, NIV_MID_DEBUG, \
-                               "%s: MID DEBUG: " format, \
+                               "%s: DBG2: " format, \
                                LogComponents[component].comp_str, ## args ); \
   } while (0)
 
@@ -533,7 +533,7 @@ extern log_component_info __attribute__ ((__unused__)) LogComponents[COMPONENT_C
   do { \
     if (unlikely(LogComponents[component].comp_log_level >= NIV_FULL_DEBUG)) \
       DisplayLogComponentLevel(component, (char *)__FUNCTION__, NIV_FULL_DEBUG, \
-                               "%s: FULLDEBUG: " format, \
+                               "%s: DBG3: " format, \
                                LogComponents[component].comp_str, ## args ); \
   } while (0)
 

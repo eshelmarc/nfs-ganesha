@@ -3136,18 +3136,18 @@ int nfs4_FSALattr_To_Fattr(const struct attrlist *attrs,
 			assert(set_attribute_in_bitmap(&Fattr->attrmask,
 						       attribute_to_set));
 			LogFullDebug(COMPONENT_NFS_V4,
-				     "Encoded attribute %d, name = %s",
+				     "Encoded attr %d, name = %s",
 				     attribute_to_set,
 				     fattr4tab[attribute_to_set].name);
 		} else if(xdr_res == FATTR_XDR_NOOP) {
 			LogFullDebug(COMPONENT_NFS_V4,
-				     "Attribute not supported %d name=%s",
+				     "Attr not supported %d name=%s",
 				     attribute_to_set,
 				     fattr4tab[attribute_to_set].name);
 			continue;
 		} else {
 			LogFullDebug(COMPONENT_NFS_V4,
-				     "Encode FAILED for attribute %d, name = %s",
+				     "Encode FAILED for attr %d, name = %s",
 				     attribute_to_set,
 				     fattr4tab[attribute_to_set].name);
 			goto err;  /* signal fail so if(LastOffset > 0) works right */
@@ -3198,7 +3198,7 @@ nfs3_Sattr_To_FSALattr(struct attrlist *FSAL_attr,
 
         if (sattr->mode.set_it) {
                 LogFullDebug(COMPONENT_NFSPROTO,
-                             "nfs3_Sattr_To_FSALattr: mode = %o",
+                             "mode = %o",
                              sattr->mode.set_mode3_u.mode);
                 FSAL_attr->mode
                         = unix2fsal_mode(sattr->mode.set_mode3_u.mode);
@@ -3207,7 +3207,7 @@ nfs3_Sattr_To_FSALattr(struct attrlist *FSAL_attr,
 
         if (sattr->uid.set_it) {
                 LogFullDebug(COMPONENT_NFSPROTO,
-                             "nfs3_Sattr_To_FSALattr: uid = %d",
+                             "uid = %d",
                              sattr->uid.set_uid3_u.uid);
                 FSAL_attr->owner = sattr->uid.set_uid3_u.uid;
                 FSAL_attr->mask |= ATTR_OWNER;
@@ -3215,7 +3215,7 @@ nfs3_Sattr_To_FSALattr(struct attrlist *FSAL_attr,
 
         if (sattr->gid.set_it) {
                 LogFullDebug(COMPONENT_NFSPROTO,
-                             "nfs3_Sattr_To_FSALattr: gid = %d",
+                             "gid = %d",
                              sattr->gid.set_gid3_u.gid);
                 FSAL_attr->group = sattr->gid.set_gid3_u.gid;
                 FSAL_attr->mask |= ATTR_GROUP;
@@ -3223,7 +3223,7 @@ nfs3_Sattr_To_FSALattr(struct attrlist *FSAL_attr,
 
         if (sattr->size.set_it) {
                 LogFullDebug(COMPONENT_NFSPROTO,
-                             "nfs3_Sattr_To_FSALattr: size = %lld",
+                             "size = %lld",
                              sattr->size.set_size3_u.size);
                 FSAL_attr->filesize = sattr->size.set_size3_u.size;
                 FSAL_attr->spaceused = sattr->size.set_size3_u.size;
@@ -3234,7 +3234,7 @@ nfs3_Sattr_To_FSALattr(struct attrlist *FSAL_attr,
 
         if (sattr->atime.set_it != DONT_CHANGE) {
                 LogFullDebug(COMPONENT_NFSPROTO,
-                             "nfs3_Sattr_To_FSALattr: set=%d atime = %d,%d",
+                             "set=%d atime = %d,%d",
                              sattr->atime.set_it,
                              sattr->atime.set_atime_u.atime.seconds,
                              sattr->atime.set_atime_u.atime.nseconds);
@@ -3254,7 +3254,7 @@ nfs3_Sattr_To_FSALattr(struct attrlist *FSAL_attr,
 
         if (sattr->mtime.set_it != DONT_CHANGE) {
                 LogFullDebug(COMPONENT_NFSPROTO,
-                             "nfs3_Sattr_To_FSALattr: set=%d mtime = %d",
+                             "set=%d mtime = %d",
                              sattr->atime.set_it,
                              sattr->mtime.set_mtime_u.mtime.seconds);
                 if (sattr->mtime.set_it == SET_TO_CLIENT_TIME) {
@@ -3726,8 +3726,8 @@ nfs3_FSALattr_To_Fattr(exportlist_t *export,
         /* in NFSv3, we only keeps fsid.major, casted into an nfs_uint64 */
         Fattr->fsid = (nfs3_uint64) export->filesystem_id.major;
         LogFullDebug(COMPONENT_NFSPROTO,
-                     "fsid.major = %#"PRIX64" (%"PRIu64
-                     "), fsid.minor = %#"PRIX64" (%"PRIu64
+                     "fsid major %#"PRIX64" (%"PRIu64
+                     "), minor %#"PRIX64" (%"PRIu64
                      "), nfs3_fsid = %#"PRIX64" (%"PRIu64")",
                      export->filesystem_id.major, export->filesystem_id.major,
                      export->filesystem_id.minor,
@@ -4111,12 +4111,12 @@ static int Fattr4_To_FSAL_attr(struct attrlist *attrs,
 			if(attrs)
 				FSAL_SET_MASK(attrs->mask, f4e->attrmask);
 			LogFullDebug(COMPONENT_NFS_V4,
-				     "Decode attribute %d, name = %s",
+				     "Decode attr %d, name = %s",
 				     attribute_to_set,
 				     f4e->name);
 		} else if(xdr_res == FATTR_XDR_NOOP) {
 			LogFullDebug(COMPONENT_NFS_V4,
-				     "Attribute not supported %d name=%s",
+				     "Attr not supported %d name=%s",
 				     attribute_to_set,
 				     f4e->name);
 			if(nfs_status == NFS4_OK) /* preserve previous error */
@@ -4124,7 +4124,7 @@ static int Fattr4_To_FSAL_attr(struct attrlist *attrs,
 			break;
 		} else {
 			LogFullDebug(COMPONENT_NFS_V4,
-				     "Decode attribute FAILED: %d, name = %s",
+				     "Decode attr FAILED: %d, name = %s",
 				     attribute_to_set,
 				     f4e->name);
 			if(args.nfs_status == NFS4_OK)
