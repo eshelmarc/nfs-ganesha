@@ -71,6 +71,8 @@
 #define NFS_V41_NB_OPERATION 58
 #define _9P_NB_COMMAND 33
 
+extern int dbus_stats_on;
+
 /* Classify protocol ops for stats purposes
  */
 
@@ -643,6 +645,9 @@ void server_stats_nfs_done(struct req_op_context *req_ctx,
 	struct timespec current_time;
 	nsecs_elapsed_t stop_time;
 
+	if(!dbus_stats_on)
+		return;
+
 	now(&current_time);
 	stop_time = timespec_diff(&ServerBootTime,
 				  &current_time);
@@ -694,6 +699,8 @@ void server_stats_nfsv4_op_done(struct req_op_context *req_ctx,
 	struct timespec current_time;
 	nsecs_elapsed_t stop_time;
 
+	if(!dbus_stats_on)
+		return;
 	if(client == NULL)
 		return; /* we can have cases where we cannot find the client... */
 	now(&current_time);
@@ -746,6 +753,8 @@ void server_stats_compound_done(struct req_op_context *req_ctx,
 	struct timespec current_time;
 	nsecs_elapsed_t stop_time;
 
+	if(!dbus_stats_on)
+		return;
 	now(&current_time);
 	stop_time = timespec_diff(&ServerBootTime,
 				  &current_time);
@@ -796,6 +805,8 @@ void server_stats_io_done(struct req_op_context *req_ctx,
 {
 	struct server_stats *server_st;
 
+	if(!dbus_stats_on)
+		return;
 	server_st = container_of(req_ctx->client, struct server_stats, client);
 	record_io_stats(&server_st->st,
 			&req_ctx->client->lock,

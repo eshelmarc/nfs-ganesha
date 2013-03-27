@@ -487,9 +487,66 @@ static struct gsh_dbus_method *export_stats_methods[] ={
 	NULL
 };
 
+int dbus_stats_on = 1;
+
+static bool
+gsh_stats_off(DBusMessageIter *args, DBusMessage *reply)
+{
+	dbus_stats_on = 1;
+	return true;
+}
+
+static bool
+gsh_stats_on(DBusMessageIter *args, DBusMessage *reply)
+{
+	dbus_stats_on = 0;
+	return true;
+}
+
+static bool
+gsh_stats_reset(DBusMessageIter *args, DBusMessage *reply)
+{
+	dbus_stats_on = 1;
+        /* TO DO */
+	return true;
+}
+
+static struct gsh_dbus_method stats_off = {
+	.name = "StatsOff",
+	.method = gsh_stats_off,
+	.args = { TIMESTAMP_REPLY,{}, END_ARG_LIST
+	}
+};
+
+static struct gsh_dbus_method stats_on = {
+	.name = "StatsOn",
+	.method = gsh_stats_on,
+	.args = { TIMESTAMP_REPLY,{}, END_ARG_LIST
+	}
+};
+
+static struct gsh_dbus_method stats_reset = {
+	.name = "StatsReset",
+	.method = gsh_stats_reset,
+	.args = { TIMESTAMP_REPLY,{}, END_ARG_LIST
+	}
+};
+
+static struct gsh_dbus_method *stats_mgr_methods[] ={
+	&stats_on,
+	&stats_off,
+	&stats_reset,
+	NULL
+};
+
 static struct gsh_dbus_interface export_stats_table = {
 	.name = "org.ganesha.nfsd.exportstats",
 	.methods = export_stats_methods
+};
+
+static struct gsh_dbus_interface stats_mgr_table = {
+	.name = "org.ganesha.nfsd.stats",
+	.methods = stats_mgr_methods
 };
 
 /* DBUS list of interfaces on /org/ganesha/nfsd/ExportMgr
@@ -498,6 +555,14 @@ static struct gsh_dbus_interface export_stats_table = {
 static struct gsh_dbus_interface *export_interfaces[] = {
 	&export_mgr_table,
 	&export_stats_table,
+	NULL
+};
+
+/* DBUS list of interfaces on /org/ganesha/nfsd/StatsMgr
+ */
+
+static struct gsh_dbus_interface *stats_interfaces[] = {
+	&stats_mgr_table,
 	NULL
 };
 
@@ -524,5 +589,15 @@ void gsh_export_init(void)
 #endif
 }
 
+/**
+ * @brief Initialize stats manager
+ */
+
+void gsh_stats_init(void)
+{
+#ifdef USE_DBUS_STATS
+	gsh_dbus_register_path("StatsMgr", stats_interfaces);
+#endif
+}
 
 /** @} */

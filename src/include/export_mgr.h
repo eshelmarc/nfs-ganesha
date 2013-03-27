@@ -48,6 +48,7 @@ struct gsh_export {
 	int export_id;
 };
 
+void gsh_stats_init(void);
 void gsh_export_init(void);
 struct gsh_export *get_gsh_export(int export_id,
 				  bool lookup_only);

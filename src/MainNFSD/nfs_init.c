@@ -800,6 +800,7 @@ static void nfs_Init(const nfs_start_info_t *p_start_info)
 #endif
   gsh_client_init();
   gsh_export_init();  /* here for now since triggered by dbus stats */
+  gsh_stats_init();
 
   if (nfs_param.core_param.enable_FSAL_upcalls)
     {
