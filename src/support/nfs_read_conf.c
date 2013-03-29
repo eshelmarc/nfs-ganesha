@@ -591,6 +591,10 @@ int nfs_read_version4_conf(config_file_t in_config,
         {
           pparam->lease_lifetime = atoi(key_value);
         }
+      else if(!strcasecmp(key_name, "Grace_Period"))
+        {
+          pparam->grace_period = atoi(key_value);
+        }
       else if(!strcasecmp(key_name, "FH_Expire"))
         {
           pparam->fh_expire = StrToBoolean(key_value);

@@ -367,7 +367,12 @@ typedef struct nfs_core_param {
 /**
  * @brief Default value for lease_lifetime
  */
-#define LEASE_LIFETIME_DEFAULT 120
+#define LEASE_LIFETIME_DEFAULT 60
+
+/**
+ * @brief Default value for grace period
+ */
+#define GRACE_PERIOD_DEFAULT 90
 
 /**
  * @brief Default value of domainname.
@@ -387,6 +392,9 @@ typedef struct nfs_version4_parameter {
 	    LEASE_LIFETIME_DEFAULT and is settable with
 	    Lease_Lifetime. */
 	uint32_t lease_lifetime;
+	/** The NFS grace period.  Defaults to
+	    GRACE_PERIOD_DEFAULT and is settable with Grace_Period. */
+	uint32_t grace_period;
 	/**
 	 * Whether to use expirable filehandles.  Defaults to false
 	 * and is settable with FH_Expire.
