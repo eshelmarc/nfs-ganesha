@@ -119,6 +119,34 @@ static struct gsh_dbus_method method_reload = {
 };
 
 /**
+ * @brief Dbus method start grace period
+ *
+ * @param[in]  args  Unused
+ * @param[out] reply Unused
+ */
+
+static bool admin_dbus_grace(DBusMessageIter *args,
+			      DBusMessage *reply)
+{
+	if (args != NULL) {
+		LogWarn(COMPONENT_DBUS,
+			"Grace period take no arguments.");
+		return false;
+	}
+
+	nfs4_start_grace(NULL);
+
+	return true;
+}
+
+static struct gsh_dbus_method method_grace_period = {
+	.name = "grace",
+	.method = admin_dbus_grace,
+	.args = {{NULL, NULL, NULL}
+	}
+};
+
+/**
  * @brief Dbus method for shutting down Ganesha
  *
  * @param[in]  args  Unused
@@ -149,6 +177,7 @@ static struct gsh_dbus_method method_shutdown = {
 static struct gsh_dbus_method *admin_methods[] = {
 	&method_shutdown,
 	&method_reload,
+	&method_grace_period,
 	NULL
 };
 
