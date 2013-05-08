@@ -161,6 +161,7 @@ gsh_strdup(const char *s)
 static inline void
 gsh_free(void *p)
 {
+  if(p)
      free(p);
 }
 
@@ -177,6 +178,7 @@ gsh_free(void *p)
 static inline void
 gsh_free_size(void *p, size_t n __attribute__((unused)))
 {
+  if(p)
      free(p);
 }
 
