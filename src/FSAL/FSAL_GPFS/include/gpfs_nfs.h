@@ -538,6 +538,7 @@ struct callback_arg
     int *flags;
     struct stat *buf;
     struct nfsd4_pnfs_deviceid *dev_id;
+    uint64_t *expire_attr;
 };
 #define GPFS_INTERFACE_VERSION 10000
 #define GPFS_INTERFACE_SUB_VER     1
@@ -592,6 +593,7 @@ struct xstat_arg
     struct gpfs_acl *acl;
     int attr_changed;
     struct stat *buf;
+    uint64_t *expire_attr;
 };
 
 struct xstat_access_arg
