@@ -70,6 +70,7 @@ fsal_status_t GPFSFSAL_getattrs(struct fsal_export *export,              /* IN *
 #ifdef _USE_NFS4_ACL
   fsal_accessflags_t access_mask = 0;
 #endif
+  bool expire = FALSE;
   uint32_t grace_period_attr = 0; /*< Expiration time for attributes. */
 
   /* sanity checks.
@@ -80,8 +81,11 @@ fsal_status_t GPFSFSAL_getattrs(struct fsal_export *export,              /* IN *
 
   mntfd = gpfs_get_root_fd(export);
 
+  if (export->exp_entry->expire_type_attr == CACHE_INODE_EXPIRE)
+     expire = TRUE;
+
   st = fsal_get_xstat_by_handle(mntfd, p_filehandle, &buffxstat,
-                                &grace_period_attr);
+                                &grace_period_attr, expire);
   if(FSAL_IS_ERROR(st))
     return(st);
 
