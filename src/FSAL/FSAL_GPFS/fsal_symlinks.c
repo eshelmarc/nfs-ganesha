@@ -191,10 +191,9 @@ fsal_status_t GPFSFSAL_symlink(struct fsal_obj_handle *dir_hdl,       /* IN */
 
   fsal_restore_ganesha_credentials();
 
-  close(fd);
-
   if(rc)
     {
+      close(fd);
       return fsalstat(posix2fsal_error(errsv), errsv);
     }
 
@@ -227,5 +226,6 @@ fsal_status_t GPFSFSAL_symlink(struct fsal_obj_handle *dir_hdl,       /* IN */
     }
 
   /* OK */
+  close(fd);
   return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
