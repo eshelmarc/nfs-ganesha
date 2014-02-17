@@ -129,6 +129,13 @@ struct export_stats {
 	.direction = "out" \
 }
 
+#define TOTAL_OPS_REPLY      \
+{                            \
+	.name = "op",        \
+	.type = "a(st)",     \
+	.direction = "out"   \
+}
+
 #define LAYOUTS_REPLY		\
 {				\
 	.name = "getdevinfo",	\
@@ -161,6 +168,10 @@ void server_dbus_v3_iostats(struct nfsv3_stats *v3p, DBusMessageIter *iter);
 void server_dbus_v40_iostats(struct nfsv40_stats *v40p, DBusMessageIter *iter);
 void server_dbus_v41_iostats(struct nfsv41_stats *v41p, DBusMessageIter *iter);
 void server_dbus_v41_layouts(struct nfsv41_stats *v41p, DBusMessageIter *iter);
+void server_dbus_total_ops(struct export_stats *export_st, DBusMessageIter *iter);
+void global_dbus_total_ops(DBusMessageIter *iter);
+void server_dbus_reset_total_ops(struct export_stats *export_st);
+void server_dbus_reset_global_ops();
 
 void server_dbus_9p_iostats(struct _9p_stats *_9pp, DBusMessageIter *iter);
 #endif				/* USE_DBUS_STATS */
