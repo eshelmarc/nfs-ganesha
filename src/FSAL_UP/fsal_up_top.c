@@ -93,6 +93,27 @@ static cache_inode_status_t invalidate(struct fsal_export *export,
 	return rc;
 }
 
+static cache_inode_status_t invalidate_close(struct fsal_export *export,
+					    const struct gsh_buffdesc *key,
+					    uint32_t flags)
+{
+	cache_entry_t *entry = NULL;
+	cache_inode_status_t rc = 0;
+
+	rc = up_get(key, &entry);
+	if (rc == 0) {
+		if (is_open(entry))
+			rc = up_async_invalidate(general_fridge,
+						 export, key,
+						 CACHE_INODE_INVALIDATE_CLOSE,
+						 NULL, NULL);
+		rc = cache_inode_invalidate(entry, flags);
+		cache_inode_put(entry);
+	}
+
+	return rc;
+}
+
 cache_inode_status_t fsal_invalidate(const struct gsh_buffdesc *key,
 				     uint32_t flags)
 {
@@ -1521,7 +1542,8 @@ struct fsal_up_vector fsal_up_top = {
 	.rename = up_rename,
 	.layoutrecall = layoutrecall,
 	.notify_device = notify_device,
-	.delegrecall = delegrecall
+	.delegrecall = delegrecall,
+	.invalidate_close = invalidate_close
 };
 
 /** @} */
