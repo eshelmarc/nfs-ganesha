@@ -42,10 +42,6 @@
 #include <sys/time.h>
 #include "export_mgr.h"
 
-extern fsal_status_t gpfsfsal_xstat_2_fsal_attributes(
-					gpfsfsal_xstat_t *p_buffxstat,
-					struct attrlist *p_fsalattr_out);
-
 #ifdef _USE_NFS4_ACL
 extern fsal_status_t fsal_acl_2_gpfs_acl(fsal_acl_t *p_fsalacl,
 					 gpfsfsal_xstat_t *p_buffxstat);
@@ -90,6 +86,12 @@ fsal_status_t GPFSFSAL_getattrs(struct fsal_export *export,	/* IN */
 	if (expire_time_attr != 0)
 		p_object_attributes->expire_time_attr = expire_time_attr;
 	st = gpfsfsal_xstat_2_fsal_attributes(&buffxstat, p_object_attributes);
+	if (FSAL_TEST_MASK(p_object_attributes->mask, ATTR_FSID)) {
+		p_object_attributes->fsid = buffxstat.fsal_fsid;
+		LogFullDebug(COMPONENT_FSAL, "fsid major = %lu, minor = %lu",
+			     p_object_attributes->fsid.major,
+			     p_object_attributes->fsid.minor);
+	}
 	if (FSAL_IS_ERROR(st)) {
 		FSAL_CLEAR_MASK(p_object_attributes->mask);
 		FSAL_SET_MASK(p_object_attributes->mask, ATTR_RDATTR_ERR);

@@ -121,12 +121,6 @@ fsal_status_t gpfsfsal_xstat_2_fsal_attributes(gpfsfsal_xstat_t *p_buffxstat,
 		LogFullDebug(COMPONENT_FSAL, "filesize = %llu",
 			     (unsigned long long)p_fsalattr_out->filesize);
 	}
-	if (FSAL_TEST_MASK(p_fsalattr_out->mask, ATTR_FSID)) {
-		p_fsalattr_out->fsid = posix2fsal_fsid(p_buffstat->st_dev);
-		LogFullDebug(COMPONENT_FSAL, "fsid major = %lu, minor = %lu",
-			     p_fsalattr_out->fsid.major,
-			     p_fsalattr_out->fsid.minor);
-	}
 	if (FSAL_TEST_MASK(p_fsalattr_out->mask, ATTR_ACL)) {
 		p_fsalattr_out->acl = NULL;
 #ifdef _USE_NFS4_ACL

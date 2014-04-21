@@ -704,11 +704,14 @@ fsal_status_t fsal_get_xstat_by_handle(int dirfd,
 #endif
 	xstatarg.attr_changed = 0;
 	xstatarg.buf = &p_buffxstat->buffstat;
+	xstatarg.fsid = (struct fsal_fsid *)&p_buffxstat->fsal_fsid;
+	xstatarg.attr_valid |= XATTR_FSID;
 	xstatarg.expire_attr = expire_time_attr;
 
 	rc = gpfs_ganesha(OPENHANDLE_GET_XSTAT, &xstatarg);
 	LogDebug(COMPONENT_FSAL,
-		 "gpfs_ganesha: GET_XSTAT returned, fd %d rc %d", dirfd, rc);
+		 "gpfs_ganesha: GET_XSTAT returned, fd %d rc %d fh_size %d",
+		 dirfd, rc, p_handle->handle_size);
 
 	if (rc < 0) {
 		if (errno == ENODATA) {
