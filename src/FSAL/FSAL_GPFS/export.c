@@ -530,6 +530,8 @@ fsal_status_t gpfs_create_export(struct fsal_module *fsal_hdl,
 	fsal_errors_t fsal_error = ERR_FSAL_NO_ERROR;
 	struct gpfs_fsal_up_ctx *gpfs_fsal_up_ctx;
 	struct gpfs_fsal_up_ctx up_ctx;
+	gpfsfsal_xstat_t buffxstat;
+	struct gpfs_file_handle *fh = NULL;
 	bool_t start_fsal_up_thread = FALSE;
 /* 	struct grace_period_arg id_args; */
 
@@ -642,8 +644,14 @@ fsal_status_t gpfs_create_export(struct fsal_module *fsal_hdl,
 		goto errout;
 	} else {
 		struct stat root_stat;
-		struct gpfs_file_handle *fh =
-		    alloca(sizeof(struct gpfs_file_handle));
+		fh = alloca(sizeof(struct gpfs_file_handle));
+		if (fh == NULL) {
+			LogMajor(COMPONENT_FSAL,
+				 "alloca: root_path: %s, ENOMEM", mntdir);
+			fsal_error = posix2fsal_error(ENOMEM);
+			retval = ENOMEM;
+			goto errout;
+		}
 
 		memset(fh, 0, sizeof(struct gpfs_file_handle));
 		fh->handle_size = OPENHANDLE_HANDLE_LEN;
@@ -688,6 +696,18 @@ fsal_status_t gpfs_create_export(struct fsal_module *fsal_hdl,
 	/* Make sure the FSAL UP context list is initialized */
 	if (glist_null(&gpfs_fsal_up_ctx_list))
 		glist_init(&gpfs_fsal_up_ctx_list);
+
+	status = fsal_get_xstat_by_handle(myself->root_fd, fh, &buffxstat,
+					  NULL, false);
+	if (FSAL_IS_ERROR(status)) {
+		fsal_error = retval = status.major;
+		retval = errno;
+		LogMajor(COMPONENT_FSAL,
+			 "fsal_get_xstat_by_handle: %s, root_fd=%d, retval=%d",
+			  mntdir, myself->root_fd, retval);
+		goto errout;
+	}
+	exp_entry->filesystem_id = buffxstat.fsal_fsid;
 
 	up_ctx.gf_fsid[0] = myself->root_handle->handle_fsid[0];
 	up_ctx.gf_fsid[1] = myself->root_handle->handle_fsid[1];
