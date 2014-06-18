@@ -113,6 +113,7 @@ static nfsstat4 ds_read(struct fsal_ds_handle *const ds_pub,
 	rarg.offset = offset;
 	rarg.length = requested_length;
 	rarg.options = 0;
+	int errsv = 0;
 
 	LogDebug(COMPONENT_PNFS,
 		 "fh len %d type %d key %d: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
@@ -121,9 +122,10 @@ static nfsstat4 ds_read(struct fsal_ds_handle *const ds_pub,
 		 fh[4], fh[5], fh[6], fh[7], fh[8], fh[9]);
 
 	amount_read = gpfs_ganesha(OPENHANDLE_DS_READ, &rarg);
-	if (amount_read < 0)
-		return posix2nfs4_error(-amount_read);
-
+	if (amount_read < 0) {
+		errsv = errno;
+		return posix2nfs4_error(errsv);
+	}
 	*supplied_length = amount_read;
 
 	if (amount_read == 0 || amount_read < requested_length)
@@ -251,6 +253,7 @@ static nfsstat4 ds_write(struct fsal_ds_handle *const ds_pub,
 	struct gpfs_ds *ds = container_of(ds_pub, struct gpfs_ds, ds);
 	gpfs_handle = &ds->wire;
 	struct gsh_buffdesc key;
+	int errsv = 0;
 
 	fh = (int *)&(gpfs_handle->f_handle);
 
@@ -273,9 +276,10 @@ static nfsstat4 ds_write(struct fsal_ds_handle *const ds_pub,
 		 fh[4], fh[5], fh[6], fh[7], fh[8], fh[9]);
 
 	amount_written = gpfs_ganesha(OPENHANDLE_DS_WRITE, &warg);
-	if (amount_written < 0)
-		return posix2nfs4_error(-amount_written);
-
+	if (amount_written < 0) {
+		errsv = errno;
+		return posix2nfs4_error(errsv);
+	}
 	LogDebug(COMPONENT_PNFS, "write verifier %d-%d\n", warg.verifier4[0],
 		 warg.verifier4[1]);
 
@@ -349,6 +353,7 @@ static nfsstat4 ds_write_plus(struct fsal_ds_handle *const ds_pub,
 	warg.stability_got = stability_got;
 	warg.verifier4 = (int32_t *) writeverf;
 	warg.options = 0;
+	int errsv = 0;
 
 	if (info->io_content.what == NFS4_CONTENT_HOLE)
 		warg.options = IO_SKIP_HOLE;
@@ -363,9 +368,10 @@ static nfsstat4 ds_write_plus(struct fsal_ds_handle *const ds_pub,
 		return NFS4ERR_UNION_NOTSUPP;
 
 	amount_written = gpfs_ganesha(OPENHANDLE_DS_WRITE, &warg);
-	if (amount_written < 0)
-		return posix2nfs4_error(-amount_written);
-
+	if (amount_written < 0) {
+		errsv = errno;
+		return posix2nfs4_error(errsv);
+	}
 	LogDebug(COMPONENT_PNFS, "write verifier %d-%d\n",
 				warg.verifier4[0], warg.verifier4[1]);
 
