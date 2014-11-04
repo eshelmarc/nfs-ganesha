@@ -380,6 +380,8 @@ static nfsstat4 open4_validate_claim(compound_data_t *data,
 {
 	/* Return code */
 	nfsstat4 status = NFS4_OK;
+	/* Indicate if we let FSAL to handle requests during grace. */
+	bool_t fsal_grace = FALSE;
 
 	/* Pick off erroneous claims so we don't have to deal with
 	   them later. */
@@ -395,7 +397,10 @@ static nfsstat4 open4_validate_claim(compound_data_t *data,
 		if (data->minorversion == 0)
 			status = NFS4ERR_NOTSUPP;
 
-		if (!fsal_grace() && nfs_in_grace())
+		if ((op_ctx->fsal_export) && op_ctx->fsal_export->
+			ops->fs_supports(op_ctx->fsal_export, fso_grace_method))
+				fsal_grace = true;
+		if (!fsal_grace && nfs_in_grace())
 			status = NFS4ERR_GRACE;
 		break;
 
