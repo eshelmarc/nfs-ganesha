@@ -488,6 +488,8 @@ GPFS {}
 
 	fsal_trace(bool, default true)
 
+	fsal_grace(bool, default false)
+
 LUSTRE {}
 ---------
 
