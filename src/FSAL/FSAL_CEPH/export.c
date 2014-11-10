@@ -417,6 +417,9 @@ static bool fs_supports(struct fsal_export *export_pub,
 
 	case fso_reopen_method:
 		return false;
+
+	case fso_grace_method:
+		return false;
 	}
 
 	return false;
