@@ -44,6 +44,40 @@
 #include "nfs_file_handle.h"
 
 /**
+ * @brief: is a directory's sticky bit set?
+ *
+ */
+bool
+is_sticky_bit_set(struct attrlist *attr)
+{
+	if (attr->mode & (S_IXUSR|S_IXGRP|S_IXOTH))
+		return false;
+
+	if (!(attr->mode & S_ISVTX))
+		return false;
+
+	LogDebug(COMPONENT_NFS_V4, "sticky bit is set on %ld", attr->fileid);
+	return true;
+}
+
+/**
+ * @brief: was fs_locations requested ?
+ *
+ */
+bool
+is_fs_locations(struct attrlist *attr, struct bitmap4 attr_request)
+{
+	if ((attr_request.map[0] & (1 << FATTR4_FS_LOCATIONS))) {
+
+		LogDebug(COMPONENT_NFS_V4, "fs_locations requested for %ld",
+								attr->fileid);
+		return true;
+	}
+	return false;
+
+}
+
+/**
  * @brief Gets attributes for an entry in the FSAL.
  *
  * Impelments the NFS4_OP_GETATTR operation, which gets attributes for
@@ -96,6 +130,12 @@ int nfs4_op_getattr(struct nfs_argop4 *op, compound_data_t *data,
 					&data->currentFH,
 					&arg_GETATTR4->attr_request);
 
+	if (is_sticky_bit_set(&data->current_entry->obj_handle->attributes)) {
+		if (!is_fs_locations(
+				&data->current_entry->obj_handle->attributes,
+				arg_GETATTR4->attr_request))
+			res_GETATTR4->status = NFS4ERR_MOVED;
+	}
 	return res_GETATTR4->status;
 }				/* nfs4_op_getattr */
 
