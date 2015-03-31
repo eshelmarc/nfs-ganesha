@@ -344,6 +344,8 @@ typedef struct nfs_core_param {
 	/** Whether to support the Remote Quota protocol.  Defaults
 	    to true and is settable with Enable_RQUOTA. */
 	bool enable_RQUOTA;
+	/** Enable mixed endian. Defaults is true. */
+	bool enable_Mixed_Endian;
 	/** Whether to use fast stats.  Defaults to false. */
 	bool enable_FASTSTATS;
 	/** How long the server will trust information it got by
@@ -425,6 +427,8 @@ typedef struct nfs_version4_parameter {
 	bool pnfs_mds;
 	/** Whether this a pNFS DS server. Defaults to false */
 	bool pnfs_ds;
+	/** FSAL can override mixed_endian setting */
+	bool fsal_mixed_endian;
 } nfs_version4_parameter_t;
 
 /** @} */

@@ -572,6 +572,7 @@ typedef enum enum_fsal_fsinfo_options {
 	fso_share_support,
 	fso_share_support_owner,
 	fso_pnfs_ds_supported,
+	fso_mixed_endian_supported,
 	fso_pnfs_mds_supported,
 	fso_reopen_method,
 	fso_grace_method,
@@ -627,6 +628,7 @@ typedef struct fsal_staticfsinfo_t {
 	bool reopen_method;	/* fsal supports reopen method */
 	bool fsal_trace;	/*< fsal trace supports */
 	bool fsal_grace;	/*< fsal will handle grace */
+	bool fsal_mixed_endian;	/*< fsal set for mixed endian */
 	bool link_supports_permission_checks;
 } fsal_staticfsinfo_t;
 

@@ -39,29 +39,8 @@
 #include "sal_data.h"
 #include "cache_inode.h"
 #include "export_mgr.h"
-
-/*
- * Structure of the filehandle
- * these structures must be naturally aligned.  The xdr buffer from/to which
- * they come/go are 4 byte aligned.
- */
-
-#define GANESHA_FH_VERSION 0x41
-
-/**
- * @brief An NFSv3 handle
- *
- * This may be up to 64 bytes long, aligned on 32 bits
- */
-
-typedef struct file_handle_v3 {
-	uint8_t fhversion;	/*< Set to 0x41 to separate from Linux knfsd */
-	uint8_t xattr_pos;	/*< Used for xattr management */
-	uint16_t exportid;	/*< Must be correlated to exportlist_t::id */
-	uint8_t fs_len;		/*< Actual length of opaque handle */
-	uint8_t fsopaque[];	/*< Persistent part of FSAL handle,
-				    <= 59 bytes */
-} file_handle_v3_t;
+#include "byteswap.h"
+#include "nfs_fh.h"
 
 /**
  * @brief A struct with the size of the largest v3 handle
@@ -86,7 +65,8 @@ static inline size_t nfs3_sizeof_handle(struct file_handle_v3 *hdl)
 	int padding = 0;
 	int hsize = 0;
 
-	hsize = offsetof(struct file_handle_v3, fsopaque) + hdl->fs_len;
+	hsize = offsetof(struct file_handle_v3, fsopaque) +
+				(hdl->fs_v3len & FH3_LEN_MASK);
 
 	/* correct packet's fh length so it's divisible by 4 to trick dNFS into
 	   working. This is essentially sending the padding. */
@@ -96,25 +76,6 @@ static inline size_t nfs3_sizeof_handle(struct file_handle_v3 *hdl)
 
 	return hsize;
 }
-
-#define FILE_HANDLE_V4_FLAG_DS 0x0001
-
-/**
- * @brief An NFSv4 filehandle
- *
- * This may be up to 128 bytes, aligned on 32 bits.
- */
-
-typedef struct __attribute__ ((__packed__)) file_handle_v4 {
-	uint8_t fhversion;	/*< Set to 0x41 to separate from Linux knfsd */
-	union {
-		uint16_t exports;	/*< FSAL exports, export_by_id */
-		uint16_t servers;	/*< FSAL servers, server_by_id */
-	} id;
-	uint16_t flags;		/*< To replace things like ds_flag */
-	uint8_t fs_len;		/*< Length of opaque handle */
-	uint8_t fsopaque[];	/*< FSAL handle */
-} file_handle_v4_t;
 
 /**
  * @brief A struct with the size of the largest v4 handle

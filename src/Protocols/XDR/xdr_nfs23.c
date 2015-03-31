@@ -5,6 +5,8 @@
 #include "config.h"
 #include "gsh_rpc.h"
 #include "nfs23.h"
+#include "byteswap.h"
+#include "nfs_file_handle.h"
 
 static struct nfs_request_lookahead dummy_lookahead = {
 	.flags = 0,
@@ -449,10 +451,26 @@ nfs_fh3 *objp;
 	register long __attribute__ ((__unused__)) * buf;
 #endif
 
+	if (xdrs->x_op == XDR_ENCODE) {
+		file_handle_v3_t *fh = (file_handle_v3_t *)objp->data.data_val;
+		fh->fs_v3len |= mixed_endian;
+	}
+
 	if (!xdr_bytes
 	    (xdrs, (char **)&objp->data.data_val,
 	     (u_int *) & objp->data.data_len, 64))
 		return (false);
+
+	if (xdrs->x_op == XDR_DECODE && mixed_endian) {
+		file_handle_v3_t *fh = (file_handle_v3_t *)objp->data.data_val;
+#if (BYTE_ORDER == BIG_ENDIAN)
+		if (fh->fs_v3len & FH3_LITTLE_ENDIAN)
+			fh->exportid = bswap_16(fh->exportid);
+#else
+		if (fh->fs_v3len & FH3_BIG_ENDIAN)
+			fh->exportid = bswap_16(fh->exportid);
+#endif
+	}
 	return (true);
 }
 

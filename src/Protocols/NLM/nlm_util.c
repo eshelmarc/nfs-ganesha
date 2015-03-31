@@ -600,6 +600,21 @@ state_status_t nlm_granted_callback(cache_entry_t *pentry,
 	if (!copy_netobj(&inarg->alock.fh, &nlm_block_data->sbd_nlm_fh))
 		goto grant_fail_malloc;
 
+	/* The request fh might have been converted, if it came from a
+	   different endian format machine, if this is the case convert
+	   it back so client will see the same fh on the grant lock call.
+	*/
+	if (mixed_endian) {
+		file_handle_v3_t *fh =
+			(file_handle_v3_t *)inarg->alock.fh.n_bytes;
+#if (BYTE_ORDER == BIG_ENDIAN)
+		if (fh->fs_v3len & FH3_LITTLE_ENDIAN)
+			fh->exportid = bswap_16(fh->exportid);
+#else
+		if (fh->fs_v3len & FH3_BIG_ENDIAN)
+			fh->exportid = bswap_16(fh->exportid);
+#endif
+	}
 	if (!fill_netobj(&inarg->alock.oh,
 			 lock_entry->sle_owner->so_owner_val,
 			 lock_entry->sle_owner->so_owner_len))

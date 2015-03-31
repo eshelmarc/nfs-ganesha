@@ -393,6 +393,8 @@ void display_fsinfo(struct fsal_staticfsinfo_t *info)
 		 info->fsal_trace);
 	LogDebug(COMPONENT_FSAL, "  fsal_grace = %d  ",
 		 info->fsal_grace);
+	LogDebug(COMPONENT_FSAL, "  fsal_mixed_endian = %d  ",
+		 info->fsal_mixed_endian);
 	LogDebug(COMPONENT_FSAL, "}");
 }
 

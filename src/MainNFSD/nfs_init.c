@@ -84,6 +84,9 @@ writeverf3 NFS3_write_verifier;	/* NFS V3 write verifier */
 /* node ID used to identify an individual node in a cluster */
 int g_nodeid = 0;
 
+/* Mixed endian flags */
+uint16_t mixed_endian = 0;
+
 nfs_start_info_t nfs_start_info;
 
 pthread_t admin_thrid;
@@ -201,6 +204,11 @@ void nfs_print_param_config()
 
 	printf("\tManage_Gids_Expiration = %" PRIu64 " ;\n",
 	       nfs_param.core_param.manage_gids_expiration);
+
+	if (nfs_param.core_param.enable_Mixed_Endian)
+		printf("\tEnabel_Mixed_Endian = true ;\n");
+	else
+		printf("\tEnabel_Mixed_Endian = false ;\n");
 
 	if (nfs_param.core_param.drop_io_errors)
 		printf("\tDrop_IO_Errors = true ;\n");
@@ -815,6 +823,15 @@ void nfs_start(nfs_start_info_t *p_start_info)
 	if (p_start_info->dump_default_config == true) {
 		nfs_print_param_config();
 		exit(0);
+	}
+
+	/* Set mixed endain flgas */
+	if (nfs_param.core_param.enable_Mixed_Endian) {
+#if (BYTE_ORDER == BIG_ENDIAN)
+		mixed_endian = FH_BIG_ENDIAN;
+#else
+		mixed_endian = FH_LITTLE_ENDIAN;
+#endif
 	}
 
 	/* Make sure Ganesha runs with a 0000 umask. */
