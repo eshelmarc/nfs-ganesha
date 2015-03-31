@@ -45,6 +45,7 @@
 #include "nfs_exports.h"
 #include "nfs_file_handle.h"
 #include "nfs_proto_functions.h"
+#include "byteswap.h"
 
 struct fsal_module *pnfs_fsal[FSAL_ID_COUNT];
 
@@ -207,7 +208,7 @@ static nfsstat4 make_file_handle_ds(const struct gsh_buffdesc *fh_desc,
 	v4_handle->fs_len = fh_desc->len;
 	memcpy(v4_handle->fsopaque, fh_desc->addr, fh_desc->len);
 	v4_handle->id.servers = server_id;
-	v4_handle->flags = FILE_HANDLE_V4_FLAG_DS;
+	v4_handle->flags = mixed_endian | FILE_HANDLE_V4_FLAG_DS;
 
 	return NFS4_OK;
 }

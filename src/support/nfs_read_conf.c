@@ -160,6 +160,8 @@ static struct config_item core_params[] = {
 		       nfs_core_param, enable_RQUOTA),
 	CONF_ITEM_BOOL("Enable_Fast_Stats", false,
 		       nfs_core_param, enable_FASTSTATS),
+	CONF_ITEM_BOOL("Enable_Mixed_Endian", true,
+		       nfs_core_param, enable_Mixed_Endian),
 	CONF_ITEM_I64("Manage_Gids_Expiration", 0, 7*24*60*60, 30*60,
 			nfs_core_param, manage_gids_expiration),
 	CONF_ITEM_PATH("Plugins_Dir", 1, MAXPATHLEN, FSAL_MODULE_LOC,
@@ -241,6 +243,8 @@ static struct config_item version4_params[] = {
 		       nfs_version4_parameter, pnfs_mds),
 	CONF_ITEM_BOOL("PNFS_DS", true,
 		       nfs_version4_parameter, pnfs_ds),
+	CONF_ITEM_BOOL("Mixed_Endian", true,
+		       nfs_version4_parameter, fsal_mixed_endian),
 	CONFIG_EOL
 };
 

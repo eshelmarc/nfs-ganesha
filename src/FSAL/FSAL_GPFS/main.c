@@ -84,6 +84,7 @@ static struct fsal_staticfsinfo_t default_gpfs_info = {
 	.pnfs_mds = true,
 	.pnfs_ds = true,
 	.fsal_trace = true,
+	.fsal_mixed_endian = true,
 	.reopen_method = true,
 	.fsal_grace = false,
 	.link_supports_permission_checks = true,
@@ -115,6 +116,8 @@ static struct config_item gpfs_params[] = {
 		       fsal_staticfsinfo_t, fsal_trace),
 	CONF_ITEM_BOOL("fsal_grace", false,
 		       fsal_staticfsinfo_t, fsal_grace),
+	CONF_ITEM_BOOL("Mixed_Endian", true,
+		       fsal_staticfsinfo_t, fsal_mixed_endian),
 	CONFIG_EOL
 };
 
@@ -203,6 +206,9 @@ static fsal_status_t init_config(struct fsal_module *fsal_hdl,
 		LogCrit(COMPONENT_FSAL,
 			"Could not enable GPFS logger (%s)",
 			strerror(-rc));
+
+	if (default_gpfs_info.fsal_mixed_endian)
+		mixed_endian = true;
 
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }

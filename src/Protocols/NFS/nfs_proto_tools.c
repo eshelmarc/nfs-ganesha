@@ -40,6 +40,7 @@
 #include "nfs_proto_tools.h"
 #include "idmapper.h"
 #include "export_mgr.h"
+#include "byteswap.h"
 
 /* Define mapping of NFS4 who name and type. */
 static struct {
@@ -985,8 +986,13 @@ static fattr_xdr_result decode_chown_restricted(XDR *xdr,
 static fattr_xdr_result encode_filehandle(XDR *xdr,
 					  struct xdr_attrs_args *args)
 {
+	file_handle_v4_t *fh;
+
 	if (args->hdl4 == NULL || args->hdl4->nfs_fh4_val == NULL)
 		return FATTR_XDR_FAILED;
+
+	fh = (file_handle_v4_t *)args->hdl4->nfs_fh4_val;
+	fh->flags |= mixed_endian;
 	if (!inline_xdr_bytes
 	    (xdr, &args->hdl4->nfs_fh4_val, &args->hdl4->nfs_fh4_len,
 	     NFS4_FHSIZE))
@@ -1000,6 +1006,7 @@ static fattr_xdr_result decode_filehandle(XDR *xdr,
 					  struct xdr_attrs_args *args)
 {
 	uint32_t fhlen = 0, pos;
+	file_handle_v4_t *fh;
 
 	if (args->hdl4 == NULL || args->hdl4->nfs_fh4_val == NULL) {
 		if (!inline_xdr_u_int32_t(xdr, &fhlen))
@@ -1012,6 +1019,23 @@ static fattr_xdr_result decode_filehandle(XDR *xdr,
 		    (xdr, &args->hdl4->nfs_fh4_val, &args->hdl4->nfs_fh4_len,
 		     NFS4_FHSIZE))
 			return FATTR_XDR_FAILED;
+
+		fh = (file_handle_v4_t *)args->hdl4->nfs_fh4_val;
+		LogFullDebug(COMPONENT_FILEHANDLE,
+			     "File handle flags 0x%x exports id %d",
+			     fh->flags, fh->id.exports);
+
+#if (BYTE_ORDER == BIG_ENDIAN)
+		if (fh->flags & FH_LITTLE_ENDIAN) {
+			fh->flags = bswap_16(fh->flags);
+			fh->id.exports = bswap_16(fh->id.exports);
+		}
+#else
+		if (fh->flags & FH_BIG_ENDIAN) {
+			fh->flags = bswap_16(fh->flags);
+			fh->id.exports = bswap_16(fh->id.exports);
+		}
+#endif
 	}
 	return FATTR_XDR_SUCCESS;
 }
